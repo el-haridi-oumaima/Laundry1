@@ -1,14 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, SafeAreaView } from 'react-native';
+import FormulaireInscription from './screen_fournisseurs/FormulaireInscription'; // chemin selon l’emplacement du fichier
 
 export default function App() {
-
-
   return (
-    <View style={styles.container}>
-      <Text>welcome on my phone§!</Text>
+    <SafeAreaView style={styles.container}>
+      <FormulaireInscription />
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -16,7 +15,5 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
