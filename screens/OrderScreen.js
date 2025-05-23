@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useNavigation } from '@react-navigation/native';
@@ -22,13 +30,19 @@ export default function OrderScreen() {
   const [isDeliveryPickerVisible, setDeliveryPickerVisible] = useState(false);
 
   const formatDate = (date) =>
-    date ? date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    date
+      ? date.toLocaleDateString() +
+        ' ' +
+        date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '';
 
   const serviceOptions = [
     {
       key: 'washing',
       label: 'Washing - 20 MAD',
-      icon: <MaterialCommunityIcons name="washing-machine" size={22} color="#50b8e7" />,
+      icon: (
+        <MaterialCommunityIcons name="washing-machine" size={22} color="#50b8e7" />
+      ),
     },
     {
       key: 'ironing',
@@ -38,7 +52,9 @@ export default function OrderScreen() {
     {
       key: 'drying',
       label: 'Drying - 10 MAD',
-      icon: <MaterialCommunityIcons name="tumble-dryer" size={22} color="#50b8e7" />,
+      icon: (
+        <MaterialCommunityIcons name="tumble-dryer" size={22} color="#50b8e7" />
+      ),
     },
     {
       key: 'delivery',
@@ -53,7 +69,7 @@ export default function OrderScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Choose Your Services</Text>
 
       <View style={styles.servicesContainer}>
@@ -88,14 +104,24 @@ export default function OrderScreen() {
       </View>
 
       <Text style={styles.label}>Pickup Time:</Text>
-      <TouchableOpacity style={styles.inputRow} onPress={() => setPickupPickerVisible(true)}>
-        <Text style={styles.input}>{formatDate(pickupDate) || 'dd/mm/yyyy --:--'}</Text>
+      <TouchableOpacity
+        style={styles.inputRow}
+        onPress={() => setPickupPickerVisible(true)}
+      >
+        <Text style={styles.input}>
+          {formatDate(pickupDate) || 'dd/mm/yyyy --:--'}
+        </Text>
         <Ionicons name="calendar-outline" size={20} color="#50b8e7" />
       </TouchableOpacity>
 
       <Text style={styles.label}>Delivery Time:</Text>
-      <TouchableOpacity style={styles.inputRow} onPress={() => setDeliveryPickerVisible(true)}>
-        <Text style={styles.input}>{formatDate(deliveryDate) || 'dd/mm/yyyy --:--'}</Text>
+      <TouchableOpacity
+        style={styles.inputRow}
+        onPress={() => setDeliveryPickerVisible(true)}
+      >
+        <Text style={styles.input}>
+          {formatDate(deliveryDate) || 'dd/mm/yyyy --:--'}
+        </Text>
         <Ionicons name="calendar-outline" size={20} color="#50b8e7" />
       </TouchableOpacity>
 
@@ -124,21 +150,22 @@ export default function OrderScreen() {
         }}
         onCancel={() => setDeliveryPickerVisible(false)}
       />
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#ffffff', // soft background
-    flex: 1,
-  },
+  padding: 20,
+  paddingBottom: 40,
+  backgroundColor: '#ffffff',
+  flexGrow: 1,
+},
+
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#50b8e7', // main accent
+    color: '#50b8e7',
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -146,8 +173,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#50b8e7',
-    marginTop: 30,
-    marginBottom: 12,
+    marginTop: 15,
+    marginBottom: 10,
   },
   label: {
     fontWeight: '600',
@@ -162,13 +189,13 @@ const styles = StyleSheet.create({
   },
   serviceCard: {
     width: '48%',
-    backgroundColor: '#ffffff', // light card background
-    padding: 14,
+    backgroundColor: '#ffffff',
+    padding: 10,
     marginVertical: 6,
-    borderRadius: 14,
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     borderColor: '#b9e2f5',
     borderWidth: 1,
   },
@@ -185,7 +212,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderColor: '#b9e2f5',
-    backgroundColor: '	#f5fcff',
+    backgroundColor: '#f5fcff',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
@@ -200,7 +227,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 24,
-    backgroundColor: '#007AFF', // main CTA
+    backgroundColor: '#007AFF',
     paddingVertical: 14,
     borderRadius: 14,
     shadowColor: '#ffffff',
