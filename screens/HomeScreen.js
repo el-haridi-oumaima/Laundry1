@@ -1,7 +1,16 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TextInput, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+  TextInput,
+  TouchableOpacity,
+} from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+
 const DATA = [
   {
     id: '1',
@@ -10,7 +19,7 @@ const DATA = [
     time: '8:00am - 6:30pm',
     day: 'Sunday Closed',
     rating: 4.5,
-    image: 'https://via.placeholder.com/150',
+    image: require('../assets/ksec.png'),
   },
   {
     id: '2',
@@ -19,7 +28,7 @@ const DATA = [
     time: '8:30am - 7:00pm',
     day: 'Sunday',
     rating: 4.0,
-    image: 'https://via.placeholder.com/150',
+    image: require('../assets/soclean .png'),
   },
   {
     id: '3',
@@ -28,7 +37,7 @@ const DATA = [
     time: '9:00am - 5:00pm',
     day: 'Sunday Closed',
     rating: 4.7,
-    image: 'https://via.placeholder.com/150',
+    image: require('../assets/pressing.png'),
   },
   {
     id: '4',
@@ -37,28 +46,37 @@ const DATA = [
     time: '8:00am - 6:00pm',
     day: 'Sunday',
     rating: 4.2,
-    image: 'https://via.placeholder.com/150',
+    image: require('../assets/laundryroom.png'),
   },
 ];
 
 export default function HomeScreen() {
-  const navigation = useNavigation(); // 👈 C’est ici qu’on peut l’utiliser
+  const navigation = useNavigation();
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <Image source={item.image} style={styles.image} />
-      <Text style={styles.title}>{item.name}</Text>
-      <Text style={styles.details}>{item.time} • {item.day}</Text>
-      <Text style={styles.details}>{item.location}</Text>
-      <Text style={styles.rating}>⭐ {item.rating}</Text>
-      <TouchableOpacity 
-        style={styles.button}
-        onPress={() => navigation.navigate('Order')} // 👈 Navigue vers OrderScreen
-      >
-        <Text style={styles.buttonText}>Book Now</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const handlePress = () => {
+    navigation.navigate('Order');
+  };
+
+  const renderItem = ({ item }) => {
+    return (
+      <View style={styles.card}>
+        <Image source={item.image} style={styles.image} />
+        <View style={styles.cardContent}>
+          <Text style={styles.title}>{item.name}</Text>
+          <Text style={styles.details}>{item.time} • {item.day}</Text>
+          <Text style={styles.details}>{item.location}</Text>
+          <Text style={styles.rating}>⭐ {item.rating}</Text>
+
+          <TouchableOpacity style={styles.button} onPress={handlePress}>
+            <Text style={styles.buttonText}>
+              Book Now <Ionicons name="arrow-forward" size={14} color="white" />
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       {/* Search and Filter */}
@@ -76,8 +94,7 @@ export default function HomeScreen() {
       <FlatList
         data={DATA}
         renderItem={renderItem}
-        keyExtractor={item => item.id}
-        numColumns={2}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
       />
 
@@ -90,12 +107,14 @@ export default function HomeScreen() {
       </View>
     </View>
   );
-};
-
-
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f4f4', paddingTop: 50 },
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    paddingTop: 50,
+  },
   searchRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -105,7 +124,7 @@ const styles = StyleSheet.create({
   searchBox: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: '#f1f1f1',
     borderRadius: 10,
     paddingHorizontal: 10,
     alignItems: 'center',
@@ -121,50 +140,66 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   list: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 20,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    margin: 8,
-    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    marginVertical: 10,
+    flexDirection: 'row',
+    elevation: 3,
     padding: 10,
-    elevation: 2,
+    borderColor: '#b9e2f5',
+    borderWidth: 1,
   },
   image: {
-    width: '100%',
+    width: 100,
     height: 100,
-    borderRadius: 8,
+    borderRadius: 10,
+    marginRight: 12,
+  },
+  cardContent: {
+    flex: 1,
+    justifyContent: 'center',
   },
   title: {
     fontWeight: 'bold',
-    marginTop: 8,
+    fontSize: 16,
+    color: '#003b57',
+    marginBottom: 4,
   },
   details: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#555',
+    marginBottom: 2,
   },
   rating: {
     fontSize: 12,
     marginTop: 2,
+    color: '#444',
   },
   button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingVertical: 6,
     marginTop: 8,
+    backgroundColor: '#50b8e7',
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   buttonText: {
-    textAlign: 'center',
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: '600',
+    fontSize: 13,
   },
   bottomBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: '#ccc',
+    borderTopColor: '#ddd',
     backgroundColor: '#fff',
   },
 });
