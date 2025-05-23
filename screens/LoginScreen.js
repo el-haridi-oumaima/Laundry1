@@ -29,7 +29,8 @@ export default function LoginScreen() {
 
     try {
       // Envoi d'une requête POST à ton backend Spring Boot pour l'authentification
-      const response = await fetch('http://10.10.11.94:8080/api/auth/login', {
+      const response = await fetch('http://100.72.105.219:8080/api/auth/login', {
+
         method: 'POST', // Méthode HTTP POST
         headers: {
           'Content-Type': 'application/json', // On précise que le corps est en JSON

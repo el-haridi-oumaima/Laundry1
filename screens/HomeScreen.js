@@ -19,7 +19,8 @@ const DATA = [
     time: '8:00am - 6:30pm',
     day: 'Sunday Closed',
     rating: 4.5,
-    image: require('../assets/kpressing.png'),
+    image: require('../assets/ksec.png'),
+
   },
   {
     id: '2',
@@ -28,7 +29,8 @@ const DATA = [
     time: '8:30am - 7:00pm',
     day: 'Sunday',
     rating: 4.0,
-    image: require('../assets/pressing1.png'),
+    image: require('../assets/soclean .png'),
+
   },
   {
     id: '3',
@@ -181,7 +183,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 8,
-    backgroundColor: '#007AFF',
+    backgroundColor: 'rgb(74, 146, 240)',
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 10,

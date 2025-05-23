@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+
 import {
   View,
   Text,
@@ -8,6 +9,11 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+
+
+
+
+
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useNavigation } from '@react-navigation/native';
@@ -178,7 +184,8 @@ const styles = StyleSheet.create({
   },
   label: {
     fontWeight: '600',
-    color: '#304674',
+    color: '#50b8e7',
+
     marginTop: 10,
     marginBottom: 5,
   },
@@ -227,7 +234,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 24,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#50b8e7', // main CTA
     paddingVertical: 14,
     borderRadius: 14,
     shadowColor: '#ffffff',

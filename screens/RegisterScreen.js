@@ -26,14 +26,18 @@ export default function RegisterScreen() {
     const response = await fetch('http://100.72.105.219:8080/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
+
+      body: JSON.stringify({ name, email, password }), // ← nom ajouté ici
+
     });
 
     const data = await response.json();
 
     if (data.success) {
       Alert.alert('Success', data.message);
-      navigation.navigate('Home');
+
+      navigation.navigate('Home'); // ← redirection vers Home
+
     } else {
       Alert.alert('Registration Failed', data.message);
     }
@@ -135,4 +139,7 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     textAlign: 'center',
   },
+
 });
+
+
