@@ -1,4 +1,6 @@
- import React, { useState } from 'react';
+import React, { useState } from 'react';
+
+
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
@@ -152,6 +154,7 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: '600',
     color: '#50b8e7',
+
     marginTop: 10,
     marginBottom: 5,
   },
@@ -185,7 +188,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderColor: '#b9e2f5',
-    backgroundColor: '#dcf0fa',
+    backgroundColor: '	#f5fcff',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
