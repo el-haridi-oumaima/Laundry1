@@ -20,7 +20,6 @@ const DATA = [
     day: 'Sunday Closed',
     rating: 4.5,
     image: require('../assets/ksec.png'),
-
   },
   {
     id: '2',
@@ -30,7 +29,6 @@ const DATA = [
     day: 'Sunday',
     rating: 4.0,
     image: require('../assets/soclean .png'),
-
   },
   {
     id: '3',
@@ -102,10 +100,24 @@ export default function HomeScreen() {
 
       {/* Bottom Navigation */}
       <View style={styles.bottomBar}>
-        <Ionicons name="compass-outline" size={24} color="#007AFF" />
-        <Ionicons name="grid-outline" size={24} color="#aaa" />
-        <Ionicons name="bookmark-outline" size={24} color="#aaa" />
-        <Ionicons name="person-outline" size={24} color="#aaa" />
+        <TouchableOpacity>
+          <Ionicons name="cart-outline" size={24} color="#aaa" />
+          <Text style={styles.menuText}>Order</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.exploreButton}>
+          <Ionicons name="compass" size={26} color="white" />
+        </TouchableOpacity>
+
+        <TouchableOpacity>
+          <Ionicons name="person-outline" size={24} color="#aaa" />
+          <Text style={styles.menuText}>Profile</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity>
+          <Ionicons name="notifications-outline" size={24} color="#aaa" />
+          <Text style={styles.menuText}>Notif</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -199,9 +211,24 @@ const styles = StyleSheet.create({
   bottomBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    alignItems: 'center',
     paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: '#ddd',
     backgroundColor: '#fff',
+  },
+
+  exploreButton: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 50,
+    marginBottom: 10,
+    marginHorizontal: 15,
+  },
+  menuText: {
+    fontSize: 11,
+    textAlign: 'center',
+    color: '#555',
+    marginTop: 2,
   },
 });

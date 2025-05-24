@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import {
   View,
@@ -8,20 +8,21 @@ import {
   StyleSheet,
   Platform,
   ScrollView,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
-
-
-
-
 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useNavigation } from '@react-navigation/native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export default function OrderScreen() {
   const navigation = useNavigation();
 
   const [address, setAddress] = useState('');
+  const [clientId, setClientId] = useState(null);
   const [services, setServices] = useState({
     washing: false,
     ironing: false,
@@ -34,6 +35,24 @@ export default function OrderScreen() {
   const [deliveryDate, setDeliveryDate] = useState(null);
   const [isPickupPickerVisible, setPickupPickerVisible] = useState(false);
   const [isDeliveryPickerVisible, setDeliveryPickerVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Récupération du clientId depuis AsyncStorage au montage du composant
+  useEffect(() => {
+    const fetchClientId = async () => {
+      try {
+        const storedClientId = await AsyncStorage.getItem('clientId');
+        if (storedClientId !== null) {
+          setClientId(JSON.parse(storedClientId)); // si c'est un nombre ou objet JSON
+        } else {
+          Alert.alert('Erreur', "Client non connecté");
+        }
+      } catch (error) {
+        Alert.alert('Erreur', 'Impossible de récupérer l’identifiant client');
+      }
+    };
+    fetchClientId();
+  }, []);
 
   const formatDate = (date) =>
     date
@@ -74,6 +93,65 @@ export default function OrderScreen() {
     },
   ];
 
+  const submitOrder = async () => {
+    if (!address.trim()) {
+      Alert.alert('Erreur', 'Veuillez saisir une adresse de prise en charge');
+      return;
+    }
+    if (!pickupDate || !deliveryDate) {
+      Alert.alert('Erreur', 'Veuillez sélectionner les dates de prise en charge et de livraison');
+      return;
+    }
+    if (
+      !services.washing &&
+      !services.ironing &&
+      !services.drying &&
+      !services.delivery &&
+      !services.full
+    ) {
+      Alert.alert('Erreur', 'Veuillez sélectionner au moins un service');
+      return;
+    }
+    if (!clientId) {
+      Alert.alert('Erreur', 'Client non identifié. Veuillez vous reconnecter.');
+      return;
+    }
+
+    setLoading(true);
+
+    const orderData = {
+      clientId: clientId,
+      address,
+      pickupDate: pickupDate.toISOString(),
+      deliveryDate: deliveryDate.toISOString(),
+      washing: services.washing || services.full,
+      ironing: services.ironing || services.full,
+      drying: services.drying || services.full,
+      delivery: services.delivery,
+      status: 'pending',
+    };
+
+    try {
+      const response = await fetch('http://100.72.105.219:8080/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la création de la commande');
+      }
+
+      const data = await response.json();
+      Alert.alert('Succès', 'Commande créée avec succès !');
+      navigation.navigate('Payment', { order: data });
+    } catch (error) {
+      Alert.alert('Erreur', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Choose Your Services</Text>
@@ -82,13 +160,8 @@ export default function OrderScreen() {
         {serviceOptions.map((item) => (
           <TouchableOpacity
             key={item.key}
-            style={[
-              styles.serviceCard,
-              services[item.key] && styles.serviceCardSelected,
-            ]}
-            onPress={() =>
-              setServices((prev) => ({ ...prev, [item.key]: !prev[item.key] }))
-            }
+            style={[styles.serviceCard, services[item.key] && styles.serviceCardSelected]}
+            onPress={() => setServices((prev) => ({ ...prev, [item.key]: !prev[item.key] }))}
           >
             {item.icon}
             <Text style={styles.serviceText}>{item.label}</Text>
@@ -132,10 +205,15 @@ export default function OrderScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate('Payment')}
+        style={[styles.button, loading && { opacity: 0.7 }]}
+        onPress={submitOrder}
+        disabled={loading}
       >
-        <Text style={styles.buttonText}>Confirm & Proceed to Payment</Text>
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Confirm & Proceed to Payment</Text>
+        )}
       </TouchableOpacity>
 
       <DateTimePickerModal
@@ -162,12 +240,11 @@ export default function OrderScreen() {
 
 const styles = StyleSheet.create({
   container: {
-  padding: 20,
-  paddingBottom: 40,
-  backgroundColor: '#ffffff',
-  flexGrow: 1,
-},
-
+    padding: 20,
+    paddingBottom: 40,
+    backgroundColor: '#ffffff',
+    flexGrow: 1,
+  },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
@@ -185,9 +262,8 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: '600',
     color: '#50b8e7',
-
-    marginTop: 10,
-    marginBottom: 5,
+    marginTop: 6,
+    marginBottom: 4,
   },
   servicesContainer: {
     flexDirection: 'row',
@@ -223,30 +299,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 10,
-    marginBottom: 12,
+    marginBottom: 10,
+    minHeight: 44,
+    gap: 8,
   },
   input: {
     flex: 1,
-    paddingVertical: 8,
-    fontSize: 16,
-    color: '#003b57',
+    fontSize: 15,
+    color: '#333',
   },
   button: {
-    marginTop: 24,
-    backgroundColor: '#50b8e7', // main CTA
+    backgroundColor: '#50b8e7',
     paddingVertical: 14,
-    borderRadius: 14,
-    shadowColor: '#ffffff',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 3,
+    borderRadius: 25,
+    marginTop: 24,
+    alignItems: 'center',
   },
   buttonText: {
-    color: '#ffffff',
-    textAlign: 'center',
-    fontWeight: '600',
+    color: '#fff',
+    fontWeight: '700',
     fontSize: 16,
   },
 });

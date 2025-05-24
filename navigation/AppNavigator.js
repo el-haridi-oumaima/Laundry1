@@ -21,7 +21,7 @@ export default function AppNavigator() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Register" // ✅ Écran Register ajouté
+          name="Register" // Écran Register ajouté
           component={RegisterScreen}
           options={{ headerShown: false }}
         />
