@@ -1,13 +1,24 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, SafeAreaView } from 'react-native';
-import FormulaireInscription from './screen_fournisseurs/FormulaireInscription'; // chemin selon l’emplacement du fichier
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import homeScreen from './screen_fournisseurs/homeScreen';
+import FormulaireInscription from './screen_fournisseurs/FormulaireInscription';
+
+const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    <SafeAreaView style={styles.container}>
-      <FormulaireInscription />
-      <StatusBar style="auto" />
-    </SafeAreaView>
+    <NavigationContainer>
+      <SafeAreaView style={styles.container}>
+        <Stack.Navigator initialRouteName="FormulaireInscription" screenOptions={{ headerShown: false }}>
+          
+          <Stack.Screen name="FormulaireInscription" component={FormulaireInscription} />
+          <Stack.Screen name="homeScreen" component={homeScreen} />
+        </Stack.Navigator>
+        <StatusBar style="auto" />
+      </SafeAreaView>
+    </NavigationContainer>
   );
 }
 
