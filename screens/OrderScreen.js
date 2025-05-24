@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Alert, ActivityIndicator } from 'react-native';
+
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useNavigation } from '@react-navigation/native';
@@ -43,14 +55,42 @@ export default function OrderScreen() {
   }, []);
 
   const formatDate = (date) =>
-    date ? date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    date
+      ? date.toLocaleDateString() +
+        ' ' +
+        date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '';
 
   const serviceOptions = [
-    { key: 'washing', label: 'Washing - 20 MAD', icon: <MaterialCommunityIcons name="washing-machine" size={22} color="#50b8e7" /> },
-    { key: 'ironing', label: 'Ironing - 15 MAD', icon: <MaterialCommunityIcons name="iron" size={22} color="#50b8e7" /> },
-    { key: 'drying', label: 'Drying - 10 MAD', icon: <MaterialCommunityIcons name="tumble-dryer" size={22} color="#50b8e7" /> },
-    { key: 'delivery', label: 'Delivery - 10 MAD', icon: <Ionicons name="bicycle-outline" size={22} color="#50b8e7" /> },
-    { key: 'full', label: 'Full Package - 40 MAD', icon: <Ionicons name="sparkles-outline" size={22} color="#50b8e7" /> },
+    {
+      key: 'washing',
+      label: 'Washing - 20 MAD',
+      icon: (
+        <MaterialCommunityIcons name="washing-machine" size={22} color="#50b8e7" />
+      ),
+    },
+    {
+      key: 'ironing',
+      label: 'Ironing - 15 MAD',
+      icon: <MaterialCommunityIcons name="iron" size={22} color="#50b8e7" />,
+    },
+    {
+      key: 'drying',
+      label: 'Drying - 10 MAD',
+      icon: (
+        <MaterialCommunityIcons name="tumble-dryer" size={22} color="#50b8e7" />
+      ),
+    },
+    {
+      key: 'delivery',
+      label: 'Delivery - 10 MAD',
+      icon: <Ionicons name="bicycle-outline" size={22} color="#50b8e7" />,
+    },
+    {
+      key: 'full',
+      label: 'Full Package - 40 MAD',
+      icon: <Ionicons name="sparkles-outline" size={22} color="#50b8e7" />,
+    },
   ];
 
   const submitOrder = async () => {
@@ -113,7 +153,7 @@ export default function OrderScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Choose Your Services</Text>
 
       <View style={styles.servicesContainer}>
@@ -143,14 +183,24 @@ export default function OrderScreen() {
       </View>
 
       <Text style={styles.label}>Pickup Time:</Text>
-      <TouchableOpacity style={styles.inputRow} onPress={() => setPickupPickerVisible(true)}>
-        <Text style={styles.input}>{formatDate(pickupDate) || 'dd/mm/yyyy --:--'}</Text>
+      <TouchableOpacity
+        style={styles.inputRow}
+        onPress={() => setPickupPickerVisible(true)}
+      >
+        <Text style={styles.input}>
+          {formatDate(pickupDate) || 'dd/mm/yyyy --:--'}
+        </Text>
         <Ionicons name="calendar-outline" size={20} color="#50b8e7" />
       </TouchableOpacity>
 
       <Text style={styles.label}>Delivery Time:</Text>
-      <TouchableOpacity style={styles.inputRow} onPress={() => setDeliveryPickerVisible(true)}>
-        <Text style={styles.input}>{formatDate(deliveryDate) || 'dd/mm/yyyy --:--'}</Text>
+      <TouchableOpacity
+        style={styles.inputRow}
+        onPress={() => setDeliveryPickerVisible(true)}
+      >
+        <Text style={styles.input}>
+          {formatDate(deliveryDate) || 'dd/mm/yyyy --:--'}
+        </Text>
         <Ionicons name="calendar-outline" size={20} color="#50b8e7" />
       </TouchableOpacity>
 
@@ -184,36 +234,36 @@ export default function OrderScreen() {
         }}
         onCancel={() => setDeliveryPickerVisible(false)}
       />
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    paddingTop: 60,
+    paddingBottom: 40,
     backgroundColor: '#ffffff',
-    flex: 1,
+    flexGrow: 1,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#50b8e7',
-    marginBottom: 8,       // réduit de 16 à 8
+    marginBottom: 16,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: 'rgb(5, 5, 5)',
-    marginTop: 18,         // réduit de 30 à 18
-    marginBottom: 6,       // réduit de 12 à 6
+    color: '#50b8e7',
+    marginTop: 15,
+    marginBottom: 10,
   },
   label: {
     fontWeight: '600',
     color: '#50b8e7',
-    marginTop: 6,          // réduit de 10 à 6
-    marginBottom: 4,       // réduit de 5 à 4
+    marginTop: 6,
+    marginBottom: 4,
   },
   servicesContainer: {
     flexDirection: 'row',
@@ -223,13 +273,12 @@ const styles = StyleSheet.create({
   serviceCard: {
     width: '48%',
     backgroundColor: '#ffffff',
-    paddingVertical: 10,   // réduit de 14 à 10 (moins haut)
-    paddingHorizontal: 12, // réduit de 14 à 12
-    marginVertical: 4,     // réduit de 6 à 4 (moins d’espace entre cartes)
-    borderRadius: 14,
+    padding: 10,
+    marginVertical: 6,
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,                // réduit de 10 à 8 (plus compact)
+    gap: 8,
     borderColor: '#b9e2f5',
     borderWidth: 1,
   },
@@ -245,35 +294,30 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: ' #b9e2f5',
-    backgroundColor: ' #f5fcff',
+    borderColor: '#b9e2f5',
+    backgroundColor: '#f5fcff',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,  // réduit (ios 14→10, android 10→8)
-    marginBottom: 8,        // réduit de 12 à 8
+    marginBottom: 10,
+    minHeight: 44,
+    gap: 8,
   },
   input: {
     flex: 1,
-    paddingVertical: 6,     // réduit de 8 à 6
-    fontSize: 16,
-    color: '#003b57',
+    fontSize: 15,
+    color: '#333',
   },
   button: {
-    marginTop: 16,          // réduit de 24 à 16
     backgroundColor: '#50b8e7',
-    paddingVertical: 12,    // réduit de 14 à 12
-    borderRadius: 14,
-    shadowColor: ' #ffffff',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 3,
+    paddingVertical: 14,
+    borderRadius: 25,
+    marginTop: 24,
+    alignItems: 'center',
   },
   buttonText: {
-    color: '#ffffff',
-    textAlign: 'center',
-    fontWeight: '600',
+    color: '#fff',
+    fontWeight: '700',
     fontSize: 16,
   },
 });

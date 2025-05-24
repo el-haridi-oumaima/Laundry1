@@ -217,6 +217,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#ddd',
     backgroundColor: '#fff',
   },
+
   exploreButton: {
     backgroundColor: '#007AFF',
     padding: 12,
