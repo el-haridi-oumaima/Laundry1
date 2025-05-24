@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // Pour utiliser des icônes (ici Ionicons)
 import { useNavigation } from '@react-navigation/native'; // Pour gérer la navigation entre écrans
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Déclaration du composant fonctionnel LoginScreen
 export default function LoginScreen() {
@@ -42,6 +43,9 @@ export default function LoginScreen() {
 
       // Si la connexion a réussi (champ success = true dans la réponse)
       if (data.success) {
+        // Stocker clientId en local pour réutilisation dans l'app
+        await AsyncStorage.setItem('clientId', data.clientId.toString());
+
         navigation.navigate('Home'); // Navigue vers l'écran "Home"
       } else {
         // Sinon affiche une alerte avec le message d'erreur retourné
