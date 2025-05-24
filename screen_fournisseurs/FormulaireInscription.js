@@ -182,7 +182,7 @@ export default function FormulaireInscription() {
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('homeScreen') // Adjust to your actual route name
+            onPress: () => navigation.navigate('ActivateAccount') // Adjust to your actual route name
           }
         ]
       );
