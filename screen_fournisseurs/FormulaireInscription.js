@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Image, SafeAreaView, StatusBar, Modal, FlatList } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Image, SafeAreaView, StatusBar, Modal, FlatList, Alert } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
@@ -11,19 +11,18 @@ export default function FormulaireInscription() {
   const [name, setName] = React.useState('');
   const [address, setAddress] = React.useState('');
   const [workHours, setWorkHours] = React.useState('');
-  const [services, setServices] = React.useState([]); // Changed to array for multiple selection
+  const [services, setServices] = React.useState([]); 
   const [availability, setAvailability] = React.useState('');
   const [shopImage, setShopImage] = React.useState(null);
   const [licenseImage, setLicenseImage] = React.useState(null);
   const [email, setEmail] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  
   // Modal states for dropdowns
   const [showWorkHoursModal, setShowWorkHoursModal] = React.useState(false);
   const [showServicesModal, setShowServicesModal] = React.useState(false);
   const [showAvailabilityModal, setShowAvailabilityModal] = React.useState(false);
 
-  // Dropdown options
   const workHoursOptions = [
     '8:00 AM - 6:00 PM',
     '9:00 AM - 7:00 PM',
@@ -52,31 +51,22 @@ export default function FormulaireInscription() {
     'Custom Schedule'
   ];
 
-  // Fonction asynchrone pour sélectionner une image depuis la bibliothèque de l'utilisateur
   const pickImage = async (setter) => {
     try {
-      // Demander les permissions d'abord
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (permissionResult.granted === false) {
+      if (!permissionResult.granted) {
         alert("Permission to access camera roll is required!");
         return;
       }
 
-      // Ouvre la bibliothèque d'images avec certaines options
       let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Fixed deprecated MediaTypeOptions
-        allowsEditing: true,                             // Permet à l'utilisateur de recadrer l'image
-        aspect: [4, 3],                                   // Définit le ratio de recadrage (4:3)
-        quality: 1,                                       // Qualité maximale de l'image sélectionnée
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
       });
 
-      console.log('Image picker result:', result);
-
-      // Vérifie si l'utilisateur n'a pas annulé la sélection
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        // Appelle la fonction setter avec l'URI de l'image choisie
-        console.log('Setting image URI:', result.assets[0].uri);
         setter(result.assets[0].uri);
       }
     } catch (error) {
@@ -85,41 +75,139 @@ export default function FormulaireInscription() {
     }
   };
 
-  // Fonction pour soumettre le formulaire et naviguer vers la page d'accueil
-  const handleSubmit = () => {
-    console.log('Submitted form data:', {
-      name,
-      address,
-      workHours,
-      services: services.join(', '), // Convert array to string for logging
-      availability,
-      shopImage: shopImage ? 'Image uploaded' : 'No image',
-      licenseImage: licenseImage ? 'Image uploaded' : 'No image',
+  // Upload image as base64 string to backend
+  const convertUriToBase64 = async (uri) => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
-    
-    // Navigation vers la page d'accueil après soumission
-    navigation.navigate('homeScreen'); // Fixed navigation name
   };
+
+  // Email validation function
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleSubmit = async () => {
+  // Client-side validation
+  if (!name || !address || !workHours || services.length === 0 || !availability || !email) {
+    Alert.alert('Error', 'Please fill all required fields before submitting.');
+    return;
+  }
+
+  if (!isValidEmail(email)) {
+    Alert.alert('Error', 'Please enter a valid email address.');
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    // Convert images to base64 if available
+    let shopImageBase64 = null;
+    let licenseImageBase64 = null;
+
+    if (shopImage) {
+      shopImageBase64 = await convertUriToBase64(shopImage);
+    }
+    if (licenseImage) {
+      licenseImageBase64 = await convertUriToBase64(licenseImage);
+    }
+
+    const formData = {
+      name: name.trim(),
+      address: address.trim(),
+      workHours,
+      services,
+      availability,
+      email: email.trim().toLowerCase(),
+      shopImage: shopImageBase64,
+      licenseImage: licenseImageBase64,
+    };
+
+    console.log('Sending form data:', { ...formData, shopImage: shopImage ? 'base64_data' : null, licenseImage: licenseImage ? 'base64_data' : null });
+
+    // Option 1: Basic Authentication (replace with your actual credentials)
+    const username = 'your_username'; // Replace with actual username
+    const password = 'your_password'; // Replace with actual password
+    const basicAuth = 'Basic ' + btoa(username + ':' + password);
+
+    // Option 2: Bearer Token (if you're using JWT or API key)
+    // const bearerToken = 'Bearer your_api_token_here';
+
+    const response = await fetch('http://192.168.1.106:8080/api/laundry/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': basicAuth, // Use basicAuth or bearerToken
+        // Add any other required headers your backend expects
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+
+    let responseData;
+    const contentType = response.headers.get('content-type');
+    
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        responseData = await response.json();
+      } catch (jsonError) {
+        console.error('JSON parsing error:', jsonError);
+        const textResponse = await response.text();
+        console.log('Raw response:', textResponse);
+        responseData = { success: response.ok, message: textResponse || 'Unknown error occurred' };
+      }
+    } else {
+      // Handle non-JSON response
+      const textResponse = await response.text();
+      console.log('Non-JSON response:', textResponse);
+      responseData = { success: response.ok, message: textResponse || 'Unknown error occurred' };
+    }
+
+    if (response.ok && responseData.success) {
+      Alert.alert(
+        'Registration Successful!', 
+        'Your registration has been submitted successfully! A password has been sent to your email address. Please check your email to get your login credentials.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('homeScreen') // Adjust to your actual route name
+          }
+        ]
+      );
+    } else {
+      Alert.alert('Registration Failed', responseData.message || 'Something went wrong. Please try again.');
+    }
+  } catch (error) {
+    console.error('Submission error:', error);
+    Alert.alert('Error', 'Network error occurred. Please check your connection and try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const goBack = () => {
     navigation.goBack();
   };
 
-  // Dropdown selection handlers
   const selectWorkHours = (option) => {
     setWorkHours(option);
     setShowWorkHoursModal(false);
   };
 
-  // Modified for multiple selection
   const toggleService = (option) => {
-    setServices(prevServices => {
-      if (prevServices.includes(option)) {
-        return prevServices.filter(service => service !== option);
-      } else {
-        return [...prevServices, option];
-      }
-    });
+    setServices(prev => prev.includes(option) ? prev.filter(s => s !== option) : [...prev, option]);
   };
 
   const selectAvailability = (option) => {
@@ -127,11 +215,10 @@ export default function FormulaireInscription() {
     setShowAvailabilityModal(false);
   };
 
-  // Render dropdown modal for single selection
   const renderDropdownModal = (visible, onClose, options, onSelect, title) => (
     <Modal
       visible={visible}
-      transparent={true}
+      transparent
       animationType="slide"
       onRequestClose={onClose}
     >
@@ -142,7 +229,7 @@ export default function FormulaireInscription() {
             data={options}
             keyExtractor={(item, index) => index.toString()}
             renderItem={({ item }) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalOption}
                 onPress={() => onSelect(item)}
               >
@@ -158,11 +245,10 @@ export default function FormulaireInscription() {
     </Modal>
   );
 
-  // Render services modal for multiple selection
   const renderServicesModal = () => (
     <Modal
       visible={showServicesModal}
-      transparent={true}
+      transparent
       animationType="slide"
       onRequestClose={() => setShowServicesModal(false)}
     >
@@ -173,27 +259,19 @@ export default function FormulaireInscription() {
             data={servicesOptions}
             keyExtractor={(item, index) => index.toString()}
             renderItem={({ item }) => (
-              <TouchableOpacity 
-                style={[
-                  styles.modalOption,
-                  services.includes(item) && styles.selectedOption
-                ]}
+              <TouchableOpacity
+                style={[styles.modalOption, services.includes(item) && styles.selectedOption]}
                 onPress={() => toggleService(item)}
               >
-                <Text style={[
-                  styles.modalOptionText,
-                  services.includes(item) && styles.selectedOptionText
-                ]}>
+                <Text style={[styles.modalOptionText, services.includes(item) && styles.selectedOptionText]}>
                   {item}
                 </Text>
-                {services.includes(item) && (
-                  <Check size={20} color="#1e4ed4" />
-                )}
+                {services.includes(item) && <Check size={20} color="#1e4ed4" />}
               </TouchableOpacity>
             )}
           />
-          <TouchableOpacity 
-            style={styles.modalDoneButton} 
+          <TouchableOpacity
+            style={styles.modalDoneButton}
             onPress={() => setShowServicesModal(false)}
           >
             <Text style={styles.modalDoneText}>Done</Text>
@@ -206,8 +284,7 @@ export default function FormulaireInscription() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
-      {/* Header */}
+
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.backButton}>
           <ArrowLeft size={24} color="#000" />
@@ -217,11 +294,10 @@ export default function FormulaireInscription() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        {/* Name Input - Custom styled to match dropdowns */}
         <View style={styles.dropdownButton}>
           <View style={styles.dropdownContent}>
             <Text style={name ? styles.dropdownLabelActive : styles.dropdownLabel}>
-              Name of the laundry
+              Name of the laundry *
             </Text>
             <TextInput
               value={name}
@@ -233,15 +309,15 @@ export default function FormulaireInscription() {
               selectionColor="#1e4ed4"
               cursorColor="#1e4ed4"
               theme={{ colors: { background: 'transparent', primary: '#1e4ed4' } }}
+              editable={!isSubmitting}
             />
           </View>
         </View>
 
-        {/* Address Input - Custom styled to match dropdowns */}
         <View style={styles.dropdownButton}>
           <View style={styles.dropdownContent}>
             <Text style={address ? styles.dropdownLabelActive : styles.dropdownLabel}>
-              Adresse
+              Address *
             </Text>
             <TextInput
               value={address}
@@ -253,133 +329,125 @@ export default function FormulaireInscription() {
               selectionColor="#1e4ed4"
               cursorColor="#1e4ed4"
               theme={{ colors: { background: 'transparent', primary: '#1e4ed4' } }}
+              editable={!isSubmitting}
             />
           </View>
         </View>
-        {/* Email Input */}
-<View style={styles.dropdownButton}>
-  <View style={styles.dropdownContent}>
-    <Text style={email ? styles.dropdownLabelActive : styles.dropdownLabel}>
-      Email
-    </Text>
-    <TextInput
-      value={email}
-      onChangeText={setEmail}
-      keyboardType="email-address"
-      autoCapitalize="none"
-      autoCorrect={false}
-      style={styles.customTextInput}
-      placeholder=""
-      underlineColor="transparent"
-      activeUnderlineColor="transparent"
-      selectionColor="#1e4ed4"
-      cursorColor="#1e4ed4"
-      theme={{ colors: { background: 'transparent', primary: '#1e4ed4' } }}
-    />
-  </View>
-</View>
 
-        {/* Work Hours Dropdown */}
-        <TouchableOpacity 
-          style={styles.dropdownButton} 
-          onPress={() => setShowWorkHoursModal(true)}
-        >
+        <View style={styles.dropdownButton}>
           <View style={styles.dropdownContent}>
             <Text style={workHours ? styles.dropdownLabelActive : styles.dropdownLabel}>
-              Work Hours
+              Work hours *
             </Text>
-            <Text style={workHours ? styles.dropdownValueText : styles.dropdownPlaceholder}>
-              {workHours || ''}
-            </Text>
+            <TouchableOpacity
+              style={styles.customTextInput}
+              onPress={() => !isSubmitting && setShowWorkHoursModal(true)}
+              disabled={isSubmitting}
+            >
+              <Text style={workHours ? styles.dropdownLabelActive : styles.dropdownLabel}>
+                {workHours || 'Select work hours'}
+              </Text>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
 
-        {/* Services Dropdown */}
-        <TouchableOpacity 
-          style={styles.dropdownButton} 
-          onPress={() => setShowServicesModal(true)}
-        >
+        <View style={styles.dropdownButton}>
           <View style={styles.dropdownContent}>
-            <Text style={services.length > 0 ? styles.dropdownLabelActive : styles.dropdownLabel}>
-              Services you provide
+            <Text style={services.length ? styles.dropdownLabelActive : styles.dropdownLabel}>
+              Services *
             </Text>
-            <Text style={services.length > 0 ? styles.dropdownValueText : styles.dropdownPlaceholder}>
-              {services.length > 0 ? services.join(', ') : ''}
-            </Text>
+            <TouchableOpacity
+              style={styles.customTextInput}
+              onPress={() => !isSubmitting && setShowServicesModal(true)}
+              disabled={isSubmitting}
+            >
+              <Text style={services.length ? styles.dropdownLabelActive : styles.dropdownLabel}>
+                {services.length > 0 ? services.join(', ') : 'Select services'}
+              </Text>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
 
-        {/* Availability Dropdown */}
-        <TouchableOpacity 
-          style={styles.dropdownButton} 
-          onPress={() => setShowAvailabilityModal(true)}
-        >
+        <View style={styles.dropdownButton}>
           <View style={styles.dropdownContent}>
             <Text style={availability ? styles.dropdownLabelActive : styles.dropdownLabel}>
-              Availability
+              Availability *
             </Text>
-            <Text style={availability ? styles.dropdownValueText : styles.dropdownPlaceholder}>
-              {availability || ''}
-            </Text>
+            <TouchableOpacity
+              style={styles.customTextInput}
+              onPress={() => !isSubmitting && setShowAvailabilityModal(true)}
+              disabled={isSubmitting}
+            >
+              <Text style={availability ? styles.dropdownLabelActive : styles.dropdownLabel}>
+                {availability || 'Select availability'}
+              </Text>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
 
-        {/* Shop Images */}
-        <Text style={styles.label}>Shop Images</Text>
-        <TouchableOpacity style={styles.imageUpload} onPress={() => pickImage(setShopImage)}>
-          {shopImage ? (
-            <Image source={{ uri: shopImage }} style={styles.uploadedImage} />
-          ) : (
-            <View style={styles.uploadContent}>
-              <Upload size={24} color="#8E8E93" />
-              <Text style={styles.uploadText}>Upload the images here</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={styles.dropdownButton}>
+          <View style={styles.dropdownContent}>
+            <Text style={email ? styles.dropdownLabelActive : styles.dropdownLabel}>
+              Email *
+            </Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              style={styles.customTextInput}
+              keyboardType="email-address"
+              placeholder=""
+              underlineColor="transparent"
+              activeUnderlineColor="transparent"
+              selectionColor="#1e4ed4"
+              cursorColor="#1e4ed4"
+              theme={{ colors: { background: 'transparent', primary: '#1e4ed4' } }}
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isSubmitting}
+            />
+          </View>
+        </View>
 
-        {/* License picture */}
-        <Text style={styles.label}>License picture</Text>
-        <TouchableOpacity style={styles.imageUpload} onPress={() => pickImage(setLicenseImage)}>
-          {licenseImage ? (
-            <Image source={{ uri: licenseImage }} style={styles.uploadedImage} />
-          ) : (
-            <View style={styles.uploadContent}>
-              <Upload size={24} color="#8E8E93" />
-              <Text style={styles.uploadText}>Upload the image here</Text>
-            </View>
-          )}
+        {/* Upload Shop Image */}
+        <TouchableOpacity
+          onPress={() => !isSubmitting && pickImage(setShopImage)}
+          style={[styles.imageUploadButton, isSubmitting && styles.disabledButton]}
+          disabled={isSubmitting}
+        >
+          <Upload size={28} color={isSubmitting ? "#ccc" : "#1e4ed4"} />
+          <Text style={[styles.imageUploadText, isSubmitting && styles.disabledText]}>Upload Shop Image</Text>
         </TouchableOpacity>
+        {shopImage && <Image source={{ uri: shopImage }} style={styles.uploadedImage} />}
 
-        {/* Confirm Button */}
+        {/* Upload License Image */}
+        <TouchableOpacity
+          onPress={() => !isSubmitting && pickImage(setLicenseImage)}
+          style={[styles.imageUploadButton, isSubmitting && styles.disabledButton]}
+          disabled={isSubmitting}
+        >
+          <Upload size={28} color={isSubmitting ? "#ccc" : "#1e4ed4"} />
+          <Text style={[styles.imageUploadText, isSubmitting && styles.disabledText]}>Upload License Image</Text>
+        </TouchableOpacity>
+        {licenseImage && <Image source={{ uri: licenseImage }} style={styles.uploadedImage} />}
+
         <Button
           mode="contained"
+          style={[styles.submitButton, isSubmitting && styles.disabledSubmitButton]}
+          labelStyle={{ fontWeight: 'bold' }}
           onPress={handleSubmit}
-          style={styles.confirmButton}
-          contentStyle={{ paddingVertical: 8 }}
-          labelStyle={{ fontSize: 16 }}
+          disabled={isSubmitting}
+          loading={isSubmitting}
         >
-          Confirm
+          {isSubmitting ? 'Submitting...' : 'Submit'}
         </Button>
+
+        <Text style={styles.requiredNote}>* Required fields</Text>
+
       </ScrollView>
 
-      {/* Dropdown Modals */}
-      {renderDropdownModal(
-        showWorkHoursModal,
-        () => setShowWorkHoursModal(false),
-        workHoursOptions,
-        selectWorkHours,
-        'Select Work Hours'
-      )}
-      
+      {renderDropdownModal(showWorkHoursModal, () => setShowWorkHoursModal(false), workHoursOptions, selectWorkHours, 'Select Work Hours')}
       {renderServicesModal()}
-      
-      {renderDropdownModal(
-        showAvailabilityModal,
-        () => setShowAvailabilityModal(false),
-        availabilityOptions,
-        selectAvailability,
-        'Select Availability'
-      )}
+      {renderDropdownModal(showAvailabilityModal, () => setShowAvailabilityModal(false), availabilityOptions, selectAvailability, 'Select Availability')}
     </SafeAreaView>
   );
 }
@@ -387,177 +455,152 @@ export default function FormulaireInscription() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    paddingTop: 20,
-    paddingBottom: 20,
+    backgroundColor: '#fff',
   },
   header: {
+    height: 55,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderColor: '#ddd',
+    paddingHorizontal: 10,
   },
   backButton: {
-    padding: 5,
+    width: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
+    flex: 1,
+    fontWeight: 'bold',
     fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+    textAlign: 'center',
   },
   placeholder: {
-    width: 34,
+    width: 40,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     paddingTop: 20,
-    paddingBottom: 40,
+    paddingBottom: 50,
   },
   dropdownButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#1e4ed4', // Changed to blue
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
-    backgroundColor: '#f5f7fa',
-    minHeight: 56,
+    marginBottom: 15,
   },
   dropdownContent: {
-    flex: 1,
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
+    paddingBottom: 4,
   },
   dropdownLabel: {
     fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
+    color: '#888',
   },
   dropdownLabelActive: {
     fontSize: 12,
-    color: '#1e4ed4', // Changed to blue
-    marginBottom: 2,
-  },
-  dropdownValueText: {
-    fontSize: 16,
-    color: '#000',
-  },
-  dropdownPlaceholder: {
-    fontSize: 16,
-    color: '#999',
+    color: '#1e4ed4',
+    fontWeight: 'bold',
   },
   customTextInput: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 0,
-    paddingVertical: 0,
+    paddingVertical: 6,
     fontSize: 16,
-    height: 24,
-    marginTop: 2,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 10,
-    marginTop: 5,
     color: '#000',
   },
-  imageUpload: {
-    borderWidth: 1,
-    borderColor: '#1e4ed4', // Changed to blue
-    borderRadius: 12,
-    height: 140,
-    justifyContent: 'center',
+  imageUploadButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: '#f5f7fa',
+    marginVertical: 10,
   },
-  uploadContent: {
-    alignItems: 'center',
+  imageUploadText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#1e4ed4',
+    fontWeight: 'bold',
   },
-  uploadText: {
-    color: '#555',
-    fontSize: 14,
-    marginTop: 8,
+  disabledButton: {
+    opacity: 0.5,
+  },
+  disabledText: {
+    color: '#ccc',
   },
   uploadedImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
+    width: 150,
+    height: 100,
+    marginTop: 5,
+    borderRadius: 5,
+    resizeMode: 'cover',
   },
-  confirmButton: {
+  submitButton: {
+    marginTop: 25,
+    paddingVertical: 8,
+  },
+  disabledSubmitButton: {
+    opacity: 0.6,
+  },
+  requiredNote: {
     marginTop: 10,
-    backgroundColor: '#1e4ed4',
-    borderRadius: 12,
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: '#00000055',
     justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 30,
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    width: '80%',
-    maxHeight: '60%',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#1e4ed4', // Blue accent color
+    fontWeight: 'bold',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
   },
   modalOption: {
+    padding: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   modalOptionText: {
     fontSize: 16,
-    color: '#000',
-    flex: 1,
   },
   selectedOption: {
-    backgroundColor: '#f0f8ff', // Light blue background for selected items
+    backgroundColor: '#dbeafe',
   },
   selectedOptionText: {
-    color: '#1e4ed4', // Blue text for selected items
-    fontWeight: '600',
+    color: '#1e4ed4',
+    fontWeight: 'bold',
   },
   modalCloseButton: {
-    marginTop: 20,
     padding: 15,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
     alignItems: 'center',
+    borderTopWidth: 1,
+    borderColor: '#ddd',
   },
   modalCloseText: {
     fontSize: 16,
-    color: '#666',
+    color: '#555',
   },
   modalDoneButton: {
-    marginTop: 20,
     padding: 15,
-    backgroundColor: '#1e4ed4', // Blue background for done button
-    borderRadius: 8,
     alignItems: 'center',
+    borderTopWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#1e4ed4',
   },
   modalDoneText: {
     fontSize: 16,
-    color: '#fff', // White text
-    fontWeight: '600',
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
