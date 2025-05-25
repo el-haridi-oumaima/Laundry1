@@ -1,124 +1,265 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  SafeAreaView, 
+  TouchableOpacity, 
+  ScrollView, 
+  StatusBar,
+  ActivityIndicator,
+  Alert 
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-const HomeScreen = () => {
+const HomeScreen = ({ route }) => {
   const navigation = useNavigation();
+  const [userName, setUserName] = useState('');
+  const [pendingOrders, setPendingOrders] = useState([]);
+  const [activeOrders, setActiveOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [menuVisible, setMenuVisible] = useState(false);
 
-  // Fonction pour naviguer vers le formulaire
-  const navigateToForm = () => {
-    navigation.navigate('FormulaireInscription');
+  // Get user name from navigation params or AsyncStorage
+  useEffect(() => {
+    const getUserName = async () => {
+      try {
+        // If passed through navigation
+        if (route?.params?.userName) {
+          setUserName(route.params.userName);
+        } else {
+          // Try to get from AsyncStorage or your preferred storage method
+          // const storedName = await AsyncStorage.getItem('userName');
+          // setUserName(storedName || 'User');
+          setUserName('User'); // Fallback
+        }
+      } catch (error) {
+        console.error('Error getting user name:', error);
+        setUserName('User');
+      }
+    };
+
+    getUserName();
+  }, [route]);
+
+  // Fetch orders from Spring Boot backend
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      
+      // Get clientId from storage (adjust based on your auth implementation)
+      // const clientId = await AsyncStorage.getItem('clientId');
+      const clientId = route?.params?.clientId || 1; // Fallback for testing
+      
+      // Spring Boot API endpoints
+      const baseUrl = 'http://192.168.1.107:8080'; // Replace with your Spring Boot server URL
+      // For production: 'https://your-domain.com'
+      
+      const [pendingResponse, activeResponse] = await Promise.all([
+        fetch(`${baseUrl}/api/orders/pending?clientId=${clientId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            // Add JWT token if using Spring Security
+            // 'Authorization': `Bearer ${token}`,
+          },
+        }),
+        fetch(`${baseUrl}/api/orders/active?clientId=${clientId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            // Add JWT token if using Spring Security
+            // 'Authorization': `Bearer ${token}`,
+          },
+        })
+      ]);
+
+      if (pendingResponse.ok && activeResponse.ok) {
+        const pendingData = await pendingResponse.json();
+        const activeData = await activeResponse.json();
+        
+        setPendingOrders(pendingData);
+        setActiveOrders(activeData);
+      } else {
+        // Handle Spring Boot error responses
+        const errorData = await pendingResponse.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to fetch orders');
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      Alert.alert(
+        'Connection Error', 
+        'Failed to load orders. Please check your internet connection and try again.',
+        [
+          { text: 'Retry', onPress: () => fetchOrders() },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+      
+      // Fallback to empty arrays
+      setPendingOrders([]);
+      setActiveOrders([]);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleMenuPress = () => {
+    setMenuVisible(!menuVisible);
+  };
+
+  const getOrderIcon = (orderType) => {
+    switch (orderType?.toLowerCase()) {
+      case 'laundry':
+        return '🧺';
+      case 'washing':
+        return '🧼';
+      case 'ironing':
+        return '👕';
+      case 'drying':
+        return '🌪️';
+      case 'general':
+        return '🧹';
+      default:
+        return '🧺';
+    }
+  };
+
+  const renderOrderCard = (order, index) => (
+    <TouchableOpacity key={order.id || index} style={styles.orderCard}>
+      <View style={styles.orderIconContainer}>
+        <View style={styles.orderIcon}>
+          <Text style={styles.orderIconText}>
+            {getOrderIcon(order.type)}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.orderDetails}>
+        <Text style={styles.orderIdText}>Order: {order.orderNumber}</Text>
+        <Text style={styles.orderTotalText}>Total: {order.total} DH</Text>
+        {order.services && (
+          <Text style={styles.orderServicesText}>Services: {order.services}</Text>
+        )}
+        {order.status && (
+          <Text style={styles.orderStatusText}>Status: {order.status}</Text>
+        )}
+        {order.estimatedDelivery && (
+          <Text style={styles.orderDeliveryText}>
+            Delivery: {order.estimatedDelivery}
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading orders...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
       {/* Header */}
       <View style={styles.header}>
         <View>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerText}>Hello, </Text>
-            <Text style={styles.headerNameText}>Rabat Washer</Text>
+            <Text style={styles.headerText}>Welcome, </Text>
+            <Text style={styles.headerNameText}>{userName}</Text>
           </View>
           <Text style={styles.locationText}>Bayt Al Maarifa, El Irfane</Text>
         </View>
-        <TouchableOpacity style={styles.notificationButton}>
-          <View style={styles.notificationIcon}>
-            <Text style={styles.bellIcon}>🔔</Text>
+        
+        {/* Menu Button */}
+        <TouchableOpacity 
+          style={styles.menuButton}
+          onPress={handleMenuPress}
+        >
+          <View style={styles.menuIcon}>
+            <View style={styles.menuLine} />
+            <View style={styles.menuLine} />
+            <View style={styles.menuLine} />
           </View>
         </TouchableOpacity>
       </View>
-      
-      {/* Pending Orders */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Pending Orders</Text>
-        <View style={styles.pendingOrderCard}>
-          <Text style={styles.pendingOrderText}>All caught up | No pending orders at the moment</Text>
-        </View>
-      </View>
-      
-      {/* Active Orders */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.activeOrdersHeader}>
-          <Text style={styles.sectionTitle}>Active Orders</Text>
-          <TouchableOpacity>
-            <Text style={styles.viewAllText}>View all</Text>
+
+      {/* Dropdown Menu */}
+      {menuVisible && (
+        <View style={styles.dropdownMenu}>
+          <TouchableOpacity style={styles.menuItem}>
+            <Text style={styles.menuItemText}>Profile Settings</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Text style={styles.menuItemText}>Order History</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Text style={styles.menuItemText}>Support</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Text style={styles.menuItemText}>Logout</Text>
           </TouchableOpacity>
         </View>
-        
-        <ScrollView style={styles.activeOrdersList}>
-          {/* Order 1 */}
-          <View style={styles.orderCard}>
-            <View style={styles.orderIconContainer}>
-              <View style={styles.orderIcon}>
-                <Text style={styles.orderIconText}>🛏️</Text>
-              </View>
-            </View>
-            <View style={styles.orderDetails}>
-              <Text style={styles.orderIdText}>Order: 12457895621102</Text>
-              <Text style={styles.orderTotalText}>Total: 150 DH</Text>
-            </View>
-          </View>
-          
-          {/* Order 2 */}
-          <View style={styles.orderCard}>
-            <View style={styles.orderIconContainer}>
-              <View style={styles.orderIcon}>
-                <Text style={styles.orderIconText}>👕</Text>
-              </View>
-            </View>
-            <View style={styles.orderDetails}>
-              <Text style={styles.orderIdText}>Order: 12457895621102</Text>
-              <Text style={styles.orderTotalText}>Total: 150 DH</Text>
-            </View>
-          </View>
-          
-          {/* Order 3 */}
-          <View style={styles.orderCard}>
-            <View style={styles.orderIconContainer}>
-              <View style={styles.orderIcon}>
-                <Text style={styles.orderIconText}>🧺</Text>
-              </View>
-            </View>
-            <View style={styles.orderDetails}>
-              <Text style={styles.orderIdText}>Order: 12457895621102</Text>
-              <Text style={styles.orderTotalText}>Total: 150 DH</Text>
-            </View>
-          </View>
-        </ScrollView>
-      </View>
+      )}
       
-      {/* Bottom Tab Bar */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity style={styles.tabItem}>
-          <View style={styles.tabIcon}>
-            <Text style={styles.tabIconText}>💬</Text>
-          </View>
-          <Text style={styles.activeTabText}>Explore</Text>
-        </TouchableOpacity>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Pending Orders */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Pending Orders</Text>
+          {pendingOrders.length === 0 ? (
+            <View style={styles.pendingOrderCard}>
+              <Text style={styles.pendingOrderText}>
+                All caught up | No pending orders at the moment
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.pendingOrdersList}>
+              {pendingOrders.map((order, index) => renderOrderCard(order, index))}
+            </View>
+          )}
+        </View>
         
-        <TouchableOpacity style={styles.tabItem}>
-          <View style={styles.tabIcon}>
-            <Text style={styles.tabIconText}>⊞</Text>
+        {/* Active Orders */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.activeOrdersHeader}>
+            <Text style={styles.sectionTitle}>Active Orders</Text>
+            {activeOrders.length > 3 && (
+              <TouchableOpacity>
+                <Text style={styles.viewAllText}>View all</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          <Text style={styles.tabText}>Categories</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.tabItem}>
-          <View style={styles.tabIcon}>
-            <Text style={styles.tabIconText}>🏪</Text>
-          </View>
-          <Text style={styles.tabText}>Stores</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.tabItem}>
-          <View style={styles.tabIcon}>
-            <Text style={styles.tabIconText}>👤</Text>
-          </View>
-          <Text style={styles.tabText}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+          
+          {activeOrders.length === 0 ? (
+            <View style={styles.emptyOrderCard}>
+              <Text style={styles.emptyOrderText}>No active orders</Text>
+            </View>
+          ) : (
+            <View style={styles.activeOrdersList}>
+              {activeOrders.slice(0, 5).map((order, index) => renderOrderCard(order, index))}
+            </View>
+          )}
+        </View>
+
+        {/* Refresh Button */}
+        <View style={styles.refreshContainer}>
+          <TouchableOpacity style={styles.refreshButton} onPress={fetchOrders}>
+            <Text style={styles.refreshButtonText}>Refresh Orders</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -127,8 +268,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    paddingTop: 20,
-    paddingBottom: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#8E8E93',
   },
   header: {
     flexDirection: 'row',
@@ -137,6 +286,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   headerTextContainer: {
     flexDirection: 'row',
@@ -145,6 +300,7 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 18,
     fontWeight: '500',
+    color: '#333333',
   },
   headerNameText: {
     fontSize: 18,
@@ -156,22 +312,49 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     marginTop: 2,
   },
-  notificationButton: {
+  menuButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F8F9FA',
   },
-  notificationIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+  menuIcon: {
+    width: 20,
+    height: 16,
+    justifyContent: 'space-between',
   },
-  bellIcon: {
-    fontSize: 18,
+  menuLine: {
+    height: 2,
+    backgroundColor: '#333333',
+    borderRadius: 1,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 80,
+    right: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 8,
+    minWidth: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  menuItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  menuItemText: {
+    fontSize: 14,
+    color: '#333333',
+  },
+  scrollContainer: {
+    flex: 1,
   },
   sectionContainer: {
     paddingHorizontal: 20,
@@ -180,7 +363,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 10,
+    marginBottom: 12,
+    color: '#333333',
   },
   pendingOrderCard: {
     backgroundColor: '#F2F7FF',
@@ -197,30 +381,49 @@ const styles = StyleSheet.create({
   pendingOrderText: {
     color: '#5F6368',
     fontSize: 14,
+    textAlign: 'center',
+  },
+  pendingOrdersList: {
+    gap: 10,
   },
   activeOrdersHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
   },
   viewAllText: {
     color: '#007AFF',
     fontSize: 14,
+    fontWeight: '500',
   },
   activeOrdersList: {
-    marginBottom: 100,
+    gap: 10,
+  },
+  emptyOrderCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 15,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyOrderText: {
+    color: '#8E8E93',
+    fontSize: 14,
+    textAlign: 'center',
   },
   orderCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 15,
     padding: 15,
     flexDirection: 'row',
-    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   orderIconContainer: {
     marginRight: 15,
@@ -228,7 +431,7 @@ const styles = StyleSheet.create({
   orderIcon: {
     width: 50,
     height: 50,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: '#F2F7FF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -244,49 +447,50 @@ const styles = StyleSheet.create({
   },
   orderIdText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     marginBottom: 4,
+    color: '#333333',
   },
   orderTotalText: {
     fontSize: 14,
-    color: '#8E8E93',
-  },
-  tabBar: {
-    flexDirection: 'row',
-    height: 70,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-  },
-  tabItem: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabIcon: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabIconText: {
-    fontSize: 20,
-  },
-  tabText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginTop: 4,
-  },
-  activeTabText: {
-    fontSize: 12,
     color: '#007AFF',
-    marginTop: 4,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  orderServicesText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginBottom: 2,
+  },
+  orderStatusText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginBottom: 2,
+  },
+  orderDeliveryText: {
+    fontSize: 12,
+    color: '#8E8E93',
+  },
+  refreshContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+  },
+  refreshButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  refreshButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
