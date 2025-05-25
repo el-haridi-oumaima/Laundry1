@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Image, SafeAreaVi
 import { TextInput, Button } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import { Upload, ArrowLeft, Check } from 'lucide-react-native';
+import { Upload, ArrowLeft, Check, ChevronDown } from 'lucide-react-native';
 
 export default function FormulaireInscription() {
   const navigation = useNavigation();
@@ -43,12 +43,17 @@ export default function FormulaireInscription() {
   ];
 
   const availabilityOptions = [
-    'Available Now',
-    'Available Tomorrow',
-    'Available This Week',
-    'Busy - Next Week',
+    ' Always Available',
+    'Available On Monday only',
+    'Available On Tuesday only',
+    'Available On Wednsday only',
+    'Available On Thursday only',
+    'Available On Friday only',
     'Available Weekends Only',
-    'Custom Schedule'
+    'Available Mon-Tue-Wed',
+    'Available Thur-Fri-Weekend',
+
+
   ];
 
   const pickImage = async (setter) => {
@@ -96,109 +101,103 @@ export default function FormulaireInscription() {
   };
 
   const handleSubmit = async () => {
-  // Client-side validation
-  if (!name || !address || !workHours || services.length === 0 || !availability || !email) {
-    Alert.alert('Error', 'Please fill all required fields before submitting.');
-    return;
-  }
-
-  if (!isValidEmail(email)) {
-    Alert.alert('Error', 'Please enter a valid email address.');
-    return;
-  }
-
-  setIsSubmitting(true);
-
-  try {
-    // Convert images to base64 if available
-    let shopImageBase64 = null;
-    let licenseImageBase64 = null;
-
-    if (shopImage) {
-      shopImageBase64 = await convertUriToBase64(shopImage);
-    }
-    if (licenseImage) {
-      licenseImageBase64 = await convertUriToBase64(licenseImage);
+    // Client-side validation
+    if (!name || !address || !workHours || services.length === 0 || !availability || !email) {
+      Alert.alert('Error', 'Please fill all required fields before submitting.');
+      return;
     }
 
-    const formData = {
-      name: name.trim(),
-      address: address.trim(),
-      workHours,
-      services,
-      availability,
-      email: email.trim().toLowerCase(),
-      shopImage: shopImageBase64,
-      licenseImage: licenseImageBase64,
-    };
+    if (!isValidEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address.');
+      return;
+    }
 
-    console.log('Sending form data:', { ...formData, shopImage: shopImage ? 'base64_data' : null, licenseImage: licenseImage ? 'base64_data' : null });
+    setIsSubmitting(true);
 
-    // Option 1: Basic Authentication (replace with your actual credentials)
-    const username = 'your_username'; // Replace with actual username
-    const password = 'your_password'; // Replace with actual password
-    const basicAuth = 'Basic ' + btoa(username + ':' + password);
+    try {
+      // Convert images to base64 if available
+      let shopImageBase64 = null;
+      let licenseImageBase64 = null;
 
-    // Option 2: Bearer Token (if you're using JWT or API key)
-    // const bearerToken = 'Bearer your_api_token_here';
+      if (shopImage) {
+        shopImageBase64 = await convertUriToBase64(shopImage);
+      }
+      if (licenseImage) {
+        licenseImageBase64 = await convertUriToBase64(licenseImage);
+      }
 
-    const response = await fetch('http://192.168.1.107:8080/api/laundry/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': basicAuth, // Use basicAuth or bearerToken
-        // Add any other required headers your backend expects
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(formData),
-    });
+      const formData = {
+        name: name.trim(),
+        address: address.trim(),
+        workHours,
+        services,
+        availability,
+        email: email.trim().toLowerCase(),
+        shopImage: shopImageBase64,
+        licenseImage: licenseImageBase64,
+      };
 
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
+      console.log('Sending form data:', { ...formData, shopImage: shopImage ? 'base64_data' : null, licenseImage: licenseImage ? 'base64_data' : null });
 
-    let responseData;
-    const contentType = response.headers.get('content-type');
-    
-    if (contentType && contentType.includes('application/json')) {
-      try {
-        responseData = await response.json();
-      } catch (jsonError) {
-        console.error('JSON parsing error:', jsonError);
+      // Option 1: Basic Authentication (replace with your actual credentials)
+      const username = 'your_username'; // Replace with actual username
+      const password = 'your_password'; // Replace with actual password
+      const basicAuth = 'Basic ' + btoa(username + ':' + password);
+
+      const response = await fetch('http://192.168.1.107:8080/api/laundry/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': basicAuth,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
+      let responseData;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          responseData = await response.json();
+        } catch (jsonError) {
+          console.error('JSON parsing error:', jsonError);
+          const textResponse = await response.text();
+          console.log('Raw response:', textResponse);
+          responseData = { success: response.ok, message: textResponse || 'Unknown error occurred' };
+        }
+      } else {
         const textResponse = await response.text();
-        console.log('Raw response:', textResponse);
+        console.log('Non-JSON response:', textResponse);
         responseData = { success: response.ok, message: textResponse || 'Unknown error occurred' };
       }
-    } else {
-      // Handle non-JSON response
-      const textResponse = await response.text();
-      console.log('Non-JSON response:', textResponse);
-      responseData = { success: response.ok, message: textResponse || 'Unknown error occurred' };
-    }
 
-    // In your FormulaireInscription.js, update the success alert:
-if (response.ok && responseData.success) {
-  Alert.alert(
-    'Registration Successful!', 
-    'Your registration has been submitted successfully! A temporary password has been sent to your email address. Please check your email and use it to activate your account.',
-    [
-      {
-        text: 'OK',
-        onPress: () => navigation.navigate('ActivateAccount', { 
-          email: email.trim().toLowerCase() // Make sure to pass the email
-        })
+      if (response.ok && responseData.success) {
+        Alert.alert(
+          'Registration Successful!', 
+          'Your registration has been submitted successfully! A temporary password has been sent to your email address. Please check your email and use it to activate your account.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('ActivateAccount', { 
+                email: email.trim().toLowerCase()
+              })
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Registration Failed', responseData.message || 'Something went wrong. Please try again.');
       }
-    ]
-  );
-} else {
-  Alert.alert('Registration Failed', responseData.message || 'Something went wrong. Please try again.');
-}
-  } catch (error) {
-    console.error('Submission error:', error);
-    Alert.alert('Error', 'Network error occurred. Please check your connection and try again.');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    } catch (error) {
+      console.error('Submission error:', error);
+      Alert.alert('Error', 'Network error occurred. Please check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const goBack = () => {
     navigation.goBack();
@@ -273,7 +272,7 @@ if (response.ok && responseData.success) {
                 <Text style={[styles.modalOptionText, services.includes(item) && styles.selectedOptionText]}>
                   {item}
                 </Text>
-                {services.includes(item) && <Check size={20} color="#1e4ed4" />}
+                {services.includes(item) && <Check size={20} color="#2563EB" />}
               </TouchableOpacity>
             )}
           />
@@ -290,124 +289,137 @@ if (response.ok && responseData.success) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.backButton}>
-          <ArrowLeft size={24} color="#000" />
+          <ArrowLeft size={24} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Fill your informations</Text>
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        <View style={styles.dropdownButton}>
-          <View style={styles.dropdownContent}>
-            <Text style={name ? styles.dropdownLabelActive : styles.dropdownLabel}>
-              Name of the laundry *
-            </Text>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Name Input */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Name of the laundry</Text>
+          <View style={styles.textInputWrapper}>
             <TextInput
               value={name}
               onChangeText={setName}
-              style={styles.customTextInput}
-              placeholder=""
+              style={styles.textInput}
+              placeholder="Enter laundry name"
+              placeholderTextColor="#9CA3AF"
               underlineColor="transparent"
               activeUnderlineColor="transparent"
-              selectionColor="#1e4ed4"
-              cursorColor="#1e4ed4"
-              theme={{ colors: { background: 'transparent', primary: '#1e4ed4' } }}
+              selectionColor="#2563EB"
+              cursorColor="#2563EB"
+              theme={{ 
+                colors: { 
+                  background: '#FFFFFF', 
+                  primary: '#2563EB',
+                  text: '#1F2937'
+                } 
+              }}
               editable={!isSubmitting}
             />
           </View>
         </View>
 
-        <View style={styles.dropdownButton}>
-          <View style={styles.dropdownContent}>
-            <Text style={address ? styles.dropdownLabelActive : styles.dropdownLabel}>
-              Address *
-            </Text>
+        {/* Address Input */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Address</Text>
+          <View style={styles.textInputWrapper}>
             <TextInput
               value={address}
               onChangeText={setAddress}
-              style={styles.customTextInput}
-              placeholder=""
+              style={styles.textInput}
+              placeholder="Enter address"
+              placeholderTextColor="#9CA3AF"
               underlineColor="transparent"
               activeUnderlineColor="transparent"
-              selectionColor="#1e4ed4"
-              cursorColor="#1e4ed4"
-              theme={{ colors: { background: 'transparent', primary: '#1e4ed4' } }}
+              selectionColor="#2563EB"
+              cursorColor="#2563EB"
+              theme={{ 
+                colors: { 
+                  background: '#FFFFFF', 
+                  primary: '#2563EB',
+                  text: '#1F2937'
+                } 
+              }}
               editable={!isSubmitting}
             />
           </View>
         </View>
 
-        <View style={styles.dropdownButton}>
-          <View style={styles.dropdownContent}>
-            <Text style={workHours ? styles.dropdownLabelActive : styles.dropdownLabel}>
-              Work hours *
+        {/* Work Hours Dropdown */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Work Hours</Text>
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => !isSubmitting && setShowWorkHoursModal(true)}
+            disabled={isSubmitting}
+          >
+            <Text style={[styles.dropdownText, !workHours && styles.placeholderText]}>
+              {workHours || 'Select work hours'}
             </Text>
-            <TouchableOpacity
-              style={styles.customTextInput}
-              onPress={() => !isSubmitting && setShowWorkHoursModal(true)}
-              disabled={isSubmitting}
-            >
-              <Text style={workHours ? styles.dropdownLabelActive : styles.dropdownLabel}>
-                {workHours || 'Select work hours'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.dropdownButton}>
-          <View style={styles.dropdownContent}>
-            <Text style={services.length ? styles.dropdownLabelActive : styles.dropdownLabel}>
-              Services *
+        {/* Services Dropdown */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Services you provide</Text>
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => !isSubmitting && setShowServicesModal(true)}
+            disabled={isSubmitting}
+          >
+            <Text style={[styles.dropdownText, services.length === 0 && styles.placeholderText]}>
+              {services.length > 0 ? services.join(', ') : 'Select services'}
             </Text>
-            <TouchableOpacity
-              style={styles.customTextInput}
-              onPress={() => !isSubmitting && setShowServicesModal(true)}
-              disabled={isSubmitting}
-            >
-              <Text style={services.length ? styles.dropdownLabelActive : styles.dropdownLabel}>
-                {services.length > 0 ? services.join(', ') : 'Select services'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.dropdownButton}>
-          <View style={styles.dropdownContent}>
-            <Text style={availability ? styles.dropdownLabelActive : styles.dropdownLabel}>
-              Availability *
+        {/* Availability Dropdown */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Availability</Text>
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => !isSubmitting && setShowAvailabilityModal(true)}
+            disabled={isSubmitting}
+          >
+            <Text style={[styles.dropdownText, !availability && styles.placeholderText]}>
+              {availability || 'Select availability'}
             </Text>
-            <TouchableOpacity
-              style={styles.customTextInput}
-              onPress={() => !isSubmitting && setShowAvailabilityModal(true)}
-              disabled={isSubmitting}
-            >
-              <Text style={availability ? styles.dropdownLabelActive : styles.dropdownLabel}>
-                {availability || 'Select availability'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.dropdownButton}>
-          <View style={styles.dropdownContent}>
-            <Text style={email ? styles.dropdownLabelActive : styles.dropdownLabel}>
-              Email *
-            </Text>
+        {/* Email Input */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Email</Text>
+          <View style={styles.textInputWrapper}>
             <TextInput
               value={email}
               onChangeText={setEmail}
-              style={styles.customTextInput}
+              style={styles.textInput}
               keyboardType="email-address"
-              placeholder=""
+              placeholder="Enter email address"
+              placeholderTextColor="#9CA3AF"
               underlineColor="transparent"
               activeUnderlineColor="transparent"
-              selectionColor="#1e4ed4"
-              cursorColor="#1e4ed4"
-              theme={{ colors: { background: 'transparent', primary: '#1e4ed4' } }}
+              selectionColor="#2563EB"
+              cursorColor="#2563EB"
+              theme={{ 
+                colors: { 
+                  background: '#FFFFFF', 
+                  primary: '#2563EB',
+                  text: '#1F2937'
+                } 
+              }}
               autoCapitalize="none"
               autoCorrect={false}
               editable={!isSubmitting}
@@ -415,40 +427,60 @@ if (response.ok && responseData.success) {
           </View>
         </View>
 
-        {/* Upload Shop Image */}
-        <TouchableOpacity
-          onPress={() => !isSubmitting && pickImage(setShopImage)}
-          style={[styles.imageUploadButton, isSubmitting && styles.disabledButton]}
-          disabled={isSubmitting}
-        >
-          <Upload size={28} color={isSubmitting ? "#ccc" : "#1e4ed4"} />
-          <Text style={[styles.imageUploadText, isSubmitting && styles.disabledText]}>Upload Shop Image</Text>
-        </TouchableOpacity>
-        {shopImage && <Image source={{ uri: shopImage }} style={styles.uploadedImage} />}
+        {/* Shop Images Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Shop Images</Text>
+          
+          <TouchableOpacity
+            onPress={() => !isSubmitting && pickImage(setShopImage)}
+            style={[styles.imageUploadButton, isSubmitting && styles.disabledButton]}
+            disabled={isSubmitting}
+          >
+            <View style={styles.uploadIcon}>
+              <Upload size={24} color="#2563EB" />
+            </View>
+            <Text style={styles.uploadText}>Upload the images here</Text>
+          </TouchableOpacity>
+          
+          {shopImage && (
+            <View style={styles.imagePreviewContainer}>
+              <Image source={{ uri: shopImage }} style={styles.uploadedImage} />
+            </View>
+          )}
+        </View>
 
-        {/* Upload License Image */}
-        <TouchableOpacity
-          onPress={() => !isSubmitting && pickImage(setLicenseImage)}
-          style={[styles.imageUploadButton, isSubmitting && styles.disabledButton]}
-          disabled={isSubmitting}
-        >
-          <Upload size={28} color={isSubmitting ? "#ccc" : "#1e4ed4"} />
-          <Text style={[styles.imageUploadText, isSubmitting && styles.disabledText]}>Upload License Image</Text>
-        </TouchableOpacity>
-        {licenseImage && <Image source={{ uri: licenseImage }} style={styles.uploadedImage} />}
+        {/* License Picture Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>License picture</Text>
+          
+          <TouchableOpacity
+            onPress={() => !isSubmitting && pickImage(setLicenseImage)}
+            style={[styles.imageUploadButton, isSubmitting && styles.disabledButton]}
+            disabled={isSubmitting}
+          >
+            <View style={styles.uploadIcon}>
+              <Upload size={24} color="#2563EB" />
+            </View>
+            <Text style={styles.uploadText}>Upload the image here</Text>
+          </TouchableOpacity>
+          
+          {licenseImage && (
+            <View style={styles.imagePreviewContainer}>
+              <Image source={{ uri: licenseImage }} style={styles.uploadedImage} />
+            </View>
+          )}
+        </View>
 
-        <Button
-          mode="contained"
+        {/* Submit Button */}
+        <TouchableOpacity
           style={[styles.submitButton, isSubmitting && styles.disabledSubmitButton]}
-          labelStyle={{ fontWeight: 'bold' }}
           onPress={handleSubmit}
           disabled={isSubmitting}
-          loading={isSubmitting}
         >
-          {isSubmitting ? 'Submitting...' : 'Submit'}
-        </Button>
-
-        <Text style={styles.requiredNote}>* Required fields</Text>
+          <Text style={styles.submitButtonText}>
+            {isSubmitting ? 'Submitting...' : 'Confirm'}
+          </Text>
+        </TouchableOpacity>
 
         {/* Already have an account section */}
         <View style={styles.loginSection}>
@@ -470,175 +502,262 @@ if (response.ok && responseData.success) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8FAFC',
+    paddingTop :20,
+    paddingBottom :20,
   },
   header: {
-    height: 55,
+    height: 60,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderColor: '#ddd',
-    paddingHorizontal: 10,
+    borderBottomColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
   },
   backButton: {
-    width: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 12,
   },
   headerTitle: {
     flex: 1,
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontWeight: '600',
+    fontSize: 18,
     textAlign: 'center',
+    color: '#1F2937',
   },
   placeholder: {
-    width: 40,
+    width: 44,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: 15,
-    paddingTop: 20,
-    paddingBottom: 50,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 40,
+  },
+  inputContainer: {
+    marginBottom: 20,
+    
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  textInputWrapper: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  textInput: {
+    fontSize: 16,
+    color: '#1F2937',
+    paddingVertical: 0,
+    height: 48,
+    backgroundColor: '#FFFFFF',
+
   },
   dropdownButton: {
-    marginBottom: 15,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  dropdownContent: {
-    borderBottomWidth: 1,
-    borderColor: '#ccc',
-    paddingBottom: 4,
-  },
-  dropdownLabel: {
-    fontSize: 12,
-    color: '#888',
-  },
-  dropdownLabelActive: {
-    fontSize: 12,
-    color: '#1e4ed4',
-    fontWeight: 'bold',
-  },
-  customTextInput: {
-    paddingVertical: 6,
+  dropdownText: {
     fontSize: 16,
-    color: '#000',
+    color: '#1F2937',
+    flex: 1,
+  },
+  placeholderText: {
+    color: '#9CA3AF',
+  },
+  sectionContainer: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
   },
   imageUploadButton: {
-    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
     alignItems: 'center',
-    marginVertical: 10,
+    justifyContent: 'center',
   },
-  imageUploadText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#1e4ed4',
-    fontWeight: 'bold',
+  uploadIcon: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  uploadText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   disabledButton: {
     opacity: 0.5,
   },
-  disabledText: {
-    color: '#ccc',
+  imagePreviewContainer: {
+    marginTop: 12,
+    alignItems: 'center',
   },
   uploadedImage: {
-    width: 150,
-    height: 100,
-    marginTop: 5,
-    borderRadius: 5,
+    width: 120,
+    height: 80,
+    borderRadius: 8,
     resizeMode: 'cover',
   },
   submitButton: {
-    marginTop: 25,
-    paddingVertical: 8,
+    backgroundColor: '#2563EB',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   disabledSubmitButton: {
     opacity: 0.6,
+    shadowOpacity: 0.1,
   },
-  requiredNote: {
-    marginTop: 10,
-    fontSize: 12,
-    color: '#888',
-    textAlign: 'center',
-    fontStyle: 'italic',
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   loginSection: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
-    paddingTop: 15,
+    marginTop: 24,
+    paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#E5E7EB',
   },
   loginPrompt: {
     fontSize: 14,
-    color: '#666',
-    marginRight: 5,
+    color: '#6B7280',
+    marginRight: 6,
   },
   loginLink: {
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
   },
   loginLinkText: {
     fontSize: 14,
-    color: '#1e4ed4',
-    fontWeight: 'bold',
-    textDecorationLine: 'underline',
+    color: '#2563EB',
+    fontWeight: '600',
   },
+  // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: '#00000055',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
-    paddingHorizontal: 30,
+    paddingHorizontal: 20,
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    maxHeight: '80%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    maxHeight: '70%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    padding: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+    padding: 20,
     borderBottomWidth: 1,
-    borderColor: '#ddd',
+    borderBottomColor: '#E5E7EB',
+    textAlign: 'center',
   },
   modalOption: {
-    padding: 15,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   modalOptionText: {
     fontSize: 16,
+    color: '#1F2937',
+    flex: 1,
   },
   selectedOption: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#EEF2FF',
   },
   selectedOptionText: {
-    color: '#1e4ed4',
-    fontWeight: 'bold',
+    color: '#2563EB',
+    fontWeight: '600',
   },
   modalCloseButton: {
-    padding: 15,
+    paddingVertical: 16,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderColor: '#ddd',
+    borderTopColor: '#E5E7EB',
   },
   modalCloseText: {
     fontSize: 16,
-    color: '#555',
+    color: '#6B7280',
+    fontWeight: '500',
   },
   modalDoneButton: {
-    padding: 15,
+    paddingVertical: 16,
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#1e4ed4',
+    backgroundColor: '#2563EB',
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
   modalDoneText: {
     fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
 });
