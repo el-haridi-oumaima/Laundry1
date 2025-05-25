@@ -1,167 +1,144 @@
-import React, { useState, useEffect } from 'react';
-
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
   ScrollView,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
-
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { useRoute } from '@react-navigation/native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { useNavigation } from '@react-navigation/native';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// Tous les services disponibles avec icônes, étiquettes et noms officiels
+const allServiceOptions = [
+  {
+    key: 'washing',
+    label: 'Washing & Drying - 20 MAD',
+    icon: <MaterialCommunityIcons name="washing-machine" size={22} color="#50b8e7" />,
+    officialName: 'Washing & Drying',
+  },
+  {
+    key: 'dryCleaning',
+    label: 'Dry Cleaning - 25 MAD',
+    icon: <MaterialCommunityIcons name="tshirt-crew" size={22} color="#50b8e7" />,
+    officialName: 'Dry Cleaning',
+  },
+  {
+    key: 'washingOnly',
+    label: 'Washing Only - 15 MAD',
+    icon: <MaterialCommunityIcons name="washing-machine" size={22} color="#50b8e7" />,
+    officialName: 'Washing Only',
+  },
+  {
+    key: 'ironing',
+    label: 'Ironing - 15 MAD',
+    icon: <MaterialCommunityIcons name="iron" size={22} color="#50b8e7" />,
+    officialName: 'Ironing',
+  },
+  {
+    key: 'express',
+    label: 'Express Service - 30 MAD',
+    icon: <Ionicons name="flash-outline" size={22} color="#50b8e7" />,
+    officialName: 'Express Service',
+  },
+  {
+    key: 'full',
+    label: 'All Services - 40 MAD',
+    icon: <Ionicons name="sparkles-outline" size={22} color="#50b8e7" />,
+    officialName: 'All Services',
+  },
+  {
+    key: 'delivery',
+    label: 'Pickup & Delivery - 10 MAD',
+    icon: <Ionicons name="bicycle-outline" size={22} color="#50b8e7" />,
+    officialName: 'Pickup & Delivery',
+  },
+];
+
+// Fonction utilitaire pour formater une date
+const formatDate = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
 
 export default function OrderScreen() {
-  const navigation = useNavigation();
+  const route = useRoute();
+  const { storeName, providerName, services = [] } = route.params || {};
 
+  // Ne garder que les services disponibles pour ce pressing
+  const filteredServices = allServiceOptions.filter(svc =>
+    services.includes(svc.officialName)
+  );
+
+  // État local des services sélectionnés
+  const [selectedServices, setSelectedServices] = useState({});
+
+  // Adresse de ramassage
   const [address, setAddress] = useState('');
-  const [clientId, setClientId] = useState(null);
-  const [services, setServices] = useState({
-    washing: false,
-    ironing: false,
-    drying: false,
-    delivery: false,
-    full: false,
-  });
 
+  // États pour les dates et les pickers
   const [pickupDate, setPickupDate] = useState(null);
   const [deliveryDate, setDeliveryDate] = useState(null);
   const [isPickupPickerVisible, setPickupPickerVisible] = useState(false);
   const [isDeliveryPickerVisible, setDeliveryPickerVisible] = useState(false);
+
+  // Indicateur de chargement
   const [loading, setLoading] = useState(false);
 
-  // Récupération du clientId depuis AsyncStorage au montage du composant
-  useEffect(() => {
-    const fetchClientId = async () => {
-      try {
-        const storedClientId = await AsyncStorage.getItem('clientId');
-        if (storedClientId !== null) {
-          setClientId(JSON.parse(storedClientId)); // si c'est un nombre ou objet JSON
-        } else {
-          Alert.alert('Erreur', "Client non connecté");
-        }
-      } catch (error) {
-        Alert.alert('Erreur', 'Impossible de récupérer l’identifiant client');
-      }
-    };
-    fetchClientId();
-  }, []);
+  // Sélection / désélection d'un service
+  const toggleService = (key) => {
+    setSelectedServices(prev => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
 
-  const formatDate = (date) =>
-    date
-      ? date.toLocaleDateString() +
-        ' ' +
-        date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : '';
+  // Fonction de soumission de la commande
+  const submitOrder = () => {
+    const chosen = Object.keys(selectedServices).filter(k => selectedServices[k]);
 
-  const serviceOptions = [
-    {
-      key: 'washing',
-      label: 'Washing - 20 MAD',
-      icon: (
-        <MaterialCommunityIcons name="washing-machine" size={22} color="#50b8e7" />
-      ),
-    },
-    {
-      key: 'ironing',
-      label: 'Ironing - 15 MAD',
-      icon: <MaterialCommunityIcons name="iron" size={22} color="#50b8e7" />,
-    },
-    {
-      key: 'drying',
-      label: 'Drying - 10 MAD',
-      icon: (
-        <MaterialCommunityIcons name="tumble-dryer" size={22} color="#50b8e7" />
-      ),
-    },
-    {
-      key: 'delivery',
-      label: 'Delivery - 10 MAD',
-      icon: <Ionicons name="bicycle-outline" size={22} color="#50b8e7" />,
-    },
-    {
-      key: 'full',
-      label: 'Full Package - 40 MAD',
-      icon: <Ionicons name="sparkles-outline" size={22} color="#50b8e7" />,
-    },
-  ];
-
-  const submitOrder = async () => {
-    if (!address.trim()) {
-      Alert.alert('Erreur', 'Veuillez saisir une adresse de prise en charge');
+    if (!address) {
+      alert('Please enter pickup address');
       return;
     }
     if (!pickupDate || !deliveryDate) {
-      Alert.alert('Erreur', 'Veuillez sélectionner les dates de prise en charge et de livraison');
+      alert('Please select pickup and delivery dates');
       return;
     }
-    if (
-      !services.washing &&
-      !services.ironing &&
-      !services.drying &&
-      !services.delivery &&
-      !services.full
-    ) {
-      Alert.alert('Erreur', 'Veuillez sélectionner au moins un service');
-      return;
-    }
-    if (!clientId) {
-      Alert.alert('Erreur', 'Client non identifié. Veuillez vous reconnecter.');
+    if (chosen.length === 0) {
+      alert('Please select at least one service');
       return;
     }
 
     setLoading(true);
 
-    const orderData = {
-      clientId: clientId,
-      address,
-      pickupDate: pickupDate.toISOString(),
-      deliveryDate: deliveryDate.toISOString(),
-      washing: services.washing || services.full,
-      ironing: services.ironing || services.full,
-      drying: services.drying || services.full,
-      delivery: services.delivery,
-      status: 'pending',
-    };
-
-    try {
-      const response = await fetch('http://100.72.105.219:8080/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de la création de la commande');
-      }
-
-      const data = await response.json();
-      Alert.alert('Succès', 'Commande créée avec succès !');
-      navigation.navigate('Payment', { order: data });
-    } catch (error) {
-      Alert.alert('Erreur', error.message);
-    } finally {
+    // Simulation d'une confirmation
+    setTimeout(() => {
       setLoading(false);
-    }
+      alert(`Order confirmed for ${storeName}.\nServices: ${chosen.join(', ')}\nPickup: ${formatDate(pickupDate)}\nDelivery: ${formatDate(deliveryDate)}`);
+    }, 1500);
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.header}>{storeName}</Text>
       <Text style={styles.title}>Choose Your Services</Text>
 
+      {/* Affichage des services disponibles */}
       <View style={styles.servicesContainer}>
-        {serviceOptions.map((item) => (
+        {filteredServices.map((item) => (
           <TouchableOpacity
             key={item.key}
-            style={[styles.serviceCard, services[item.key] && styles.serviceCardSelected]}
-            onPress={() => setServices((prev) => ({ ...prev, [item.key]: !prev[item.key] }))}
+            style={[
+              styles.serviceCard,
+              selectedServices[item.key] && styles.serviceCardSelected,
+            ]}
+            onPress={() => toggleService(item.key)}
+            activeOpacity={0.7}
           >
             {item.icon}
             <Text style={styles.serviceText}>{item.label}</Text>
@@ -171,6 +148,7 @@ export default function OrderScreen() {
 
       <Text style={styles.subtitle}>Schedule</Text>
 
+      {/* Adresse */}
       <Text style={styles.label}>Pickup Address:</Text>
       <View style={styles.inputRow}>
         <TextInput
@@ -182,6 +160,7 @@ export default function OrderScreen() {
         <Ionicons name="home-outline" size={20} color="#50b8e7" />
       </View>
 
+      {/* Date de ramassage */}
       <Text style={styles.label}>Pickup Time:</Text>
       <TouchableOpacity
         style={styles.inputRow}
@@ -193,6 +172,7 @@ export default function OrderScreen() {
         <Ionicons name="calendar-outline" size={20} color="#50b8e7" />
       </TouchableOpacity>
 
+      {/* Date de livraison */}
       <Text style={styles.label}>Delivery Time:</Text>
       <TouchableOpacity
         style={styles.inputRow}
@@ -204,6 +184,7 @@ export default function OrderScreen() {
         <Ionicons name="calendar-outline" size={20} color="#50b8e7" />
       </TouchableOpacity>
 
+      {/* Bouton de validation */}
       <TouchableOpacity
         style={[styles.button, loading && { opacity: 0.7 }]}
         onPress={submitOrder}
@@ -216,6 +197,7 @@ export default function OrderScreen() {
         )}
       </TouchableOpacity>
 
+      {/* Modaux de sélection de date */}
       <DateTimePickerModal
         isVisible={isPickupPickerVisible}
         mode="datetime"
@@ -238,12 +220,26 @@ export default function OrderScreen() {
   );
 }
 
+// Styles de la page
 const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingBottom: 40,
     backgroundColor: '#ffffff',
     flexGrow: 1,
+  },
+  header: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  subHeader: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   title: {
     fontSize: 22,

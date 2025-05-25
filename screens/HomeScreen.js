@@ -11,6 +11,7 @@ import {
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
+// Données locales de démonstration (au cas où le fetch distant échoue)
 const DATA = [
   {
     id: 'local-11',
@@ -53,54 +54,83 @@ const DATA = [
 export default function HomeScreen() {
   const navigation = useNavigation();
 
+  // État local des pressing (laundries) : on initialise avec les données locales
   const [laundries, setLaundries] = useState(DATA);
+
+  // Texte de recherche pour filtrer la liste des pressing
   const [searchText, setSearchText] = useState('');
 
-  const API_URL = 'http://100.72.105.219:8080/api/laundries/activated'; // Remplace par ton URL backend
+  // URL de l'API backend pour récupérer les pressing activés
+  const API_URL = 'http://100.72.105.219:8080/api/laundries/activated';
 
+  // useEffect appelé une fois au montage du composant pour récupérer les données distantes
   useEffect(() => {
     fetch(API_URL)
       .then(res => res.json())
       .then(json => {
+        // On filtre uniquement les pressing activés (isActivated === true)
+        // puis on mappe pour adapter les données au format attendu par la liste
         const filtered = json
-          .filter(item => item.isActivated) // Correction ici
+          .filter(item => item.isActivated)
           .map(item => ({
-            id: `remote-${item.id}`,
+            id: `remote-${item.id}`, // id unique (préfixé "remote-")
             name: item.name,
-            location: item.address,         // Correction ici
-            time: item.workHours,           // Correction ici
-            day: '',                       // Pas dans le JSON, donc vide
-            rating: item.rating || 0,
+            location: item.address, // adresse dans le backend
+            time: item.workHours,   // horaires dans le backend
+            day: '',                // non fourni par le backend, on laisse vide
+            services: item.services || [],  // <-- ajouter ici la liste des services
+            rating: item.rating || 0, // note (si absente, on met 0)
             image: item.shopImage
-              ? { uri: item.shopImage }
-              : require('../assets/laundryowner.jpg'), // Image par défaut
+              ? { uri: item.shopImage } // image depuis une URL
+              : require('../assets/laundryowner.jpg'), // image par défaut locale
           }));
 
+        // On met à jour l'état en ajoutant les données distantes aux données locales
         setLaundries([...DATA, ...filtered]);
       })
       .catch(error => {
+        // En cas d'erreur, on affiche dans la console
         console.error('Erreur fetch laundries:', error);
       });
   }, []);
 
-  const handlePress = () => {
-    navigation.navigate('Order');
-  };
+  // Fonction pour gérer le clic sur "Book Now" : redirige vers l'écran Order
+  // avec les infos du pressing sélectionné en paramètre
+  // Cette fonction est une action qui se déclenche quand on clique sur le bouton "Book Now".
+  //transmet les données du pressing sélectionné à cet écran, sous forme de paramètres :
+  //storeName: nom du pressing,
 
+  const handlePress = (store) => {
+  navigation.navigate('Order', {
+    storeName: store.name,
+    services: store.services || [],
+  });
+};
+
+
+  // Filtrage de la liste en fonction du texte recherché (insensible à la casse)
   const filteredList = laundries.filter(item =>
     item.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
+  // Rendu d'un élément de la FlatList : une carte avec infos et bouton "Book Now"
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <Image source={item.image} style={styles.image} />
       <View style={styles.cardContent}>
         <Text style={styles.title}>{item.name}</Text>
-        <Text style={styles.details}>{item.time} {item.day ? `• ${item.day}` : ''}</Text>
+        <Text style={styles.details}>
+          {item.time} {item.day ? `• ${item.day}` : ''}
+        </Text>
         <Text style={styles.details}>{item.location}</Text>
         <Text style={styles.rating}>⭐ {item.rating.toFixed(1)}</Text>
 
-        <TouchableOpacity style={styles.button} onPress={handlePress}>
+         
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => handlePress(item)}
+        >
           <Text style={styles.buttonText}>
             Book Now <Ionicons name="arrow-forward" size={14} color="white" />
           </Text>
@@ -111,7 +141,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Search and Filter */}
+      {/* Barre de recherche + bouton filtre */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={20} color="#aaa" />
@@ -119,7 +149,7 @@ export default function HomeScreen() {
             placeholder="Search"
             style={styles.input}
             value={searchText}
-            onChangeText={setSearchText}
+            onChangeText={setSearchText} // met à jour searchText à chaque saisie
           />
         </View>
         <TouchableOpacity style={styles.filterButton}>
@@ -127,7 +157,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Liste des laundries */}
+      {/* Liste des pressing filtrée */}
       <FlatList
         data={filteredList}
         renderItem={renderItem}
@@ -135,7 +165,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.list}
       />
 
-      {/* Bottom Navigation */}
+      {/* Barre de navigation en bas (non fonctionnelle ici) */}
       <View style={styles.bottomBar}>
         <TouchableOpacity>
           <Ionicons name="cart-outline" size={24} color="#aaa" />
@@ -160,11 +190,12 @@ export default function HomeScreen() {
   );
 }
 
+// Styles pour le composant
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
-    paddingTop: 50,
+    paddingTop: 50, // pour ne pas être sous la barre status
   },
   searchRow: {
     flexDirection: 'row',
@@ -199,7 +230,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginVertical: 10,
     flexDirection: 'row',
-    elevation: 3,
+    elevation: 3, // ombre Android
     padding: 10,
     borderColor: '#b9e2f5',
     borderWidth: 1,
