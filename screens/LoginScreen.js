@@ -1,151 +1,228 @@
-import React, { useState } from 'react'; // Import de React et du hook useState pour gérer l'état local
+import React, { useState } from 'react';
 import {
-  View,          // Conteneur de base pour l'interface utilisateur
-  Text,          // Composant pour afficher du texte
-  TextInput,     // Composant pour les champs de saisie utilisateur
-  TouchableOpacity, // Bouton cliquable avec effet tactile
-  StyleSheet,    // Pour gérer les styles CSS en JS
-  Alert,         // Pour afficher des alertes pop-up à l'utilisateur
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Alert,
+  Dimensions,
+  ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // Pour utiliser des icônes (ici Ionicons)
-import { useNavigation } from '@react-navigation/native'; // Pour gérer la navigation entre écrans
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Déclaration du composant fonctionnel LoginScreen
+// Récupération de la largeur de l’écran pour adapter les éléments
+const { width } = Dimensions.get('window');
+
 export default function LoginScreen() {
-  // États locaux pour stocker l'email et le mot de passe saisis
+  // États pour l’email et le mot de passe
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
-  // Récupération de l'objet navigation pour changer d'écran
   const navigation = useNavigation();
 
   // Fonction appelée lors du clic sur le bouton "Login"
   const handleLogin = async () => {
-    // Vérifie que les champs ne sont pas vides
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill all fields'); // Affiche une alerte si un champ est vide
-      return; // Arrête la fonction
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
     }
 
     try {
-      // Envoi d'une requête POST à ton backend Spring Boot pour l'authentification
+      // Appel à l’API de login
       const response = await fetch('http://100.72.105.219:8080/api/auth/login', {
-
-        method: 'POST', // Méthode HTTP POST
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json', // On précise que le corps est en JSON
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }), // Corps de la requête JSON avec email et password
+        body: JSON.stringify({ email, password }),
       });
 
-      // Récupère la réponse JSON du backend
       const data = await response.json();
 
-      // Si la connexion a réussi (champ success = true dans la réponse)
       if (data.success) {
-        // Stocker clientId en local pour réutilisation dans l'app
+        // Stocker l’identifiant du client dans le stockage local
         await AsyncStorage.setItem('clientId', data.clientId.toString());
-
-        navigation.navigate('Home'); // Navigue vers l'écran "Home"
+        navigation.navigate('Home'); // Redirection vers l’écran Home
       } else {
-        // Sinon affiche une alerte avec le message d'erreur retourné
-        Alert.alert('Login Failed', data.message);
+        Alert.alert('Login failed', data.message);
       }
     } catch (error) {
-      // Si une erreur réseau ou autre survient
-      console.error('Login error:', error); // Log dans la console
-      Alert.alert('Error', 'Something went wrong'); // Affiche une alerte générique
+      console.error('Login error:', error);
+      Alert.alert('Error', 'An error occurred');
     }
   };
 
-  // JSX qui décrit l'interface utilisateur
   return (
-    <View style={styles.container}> {/* Conteneur principal */}
-      <Text style={styles.title}>Welcome Back!</Text> {/* Titre de l'écran */}
-
-      {/* Champ de saisie pour l'email avec icône */}
-      <View style={styles.inputContainer}>
-        <Ionicons name="mail-outline" size={20} color="#555" />
-        <TextInput
-          placeholder="Email"           // Texte affiché quand le champ est vide
-          style={styles.input}          // Applique le style défini
-          value={email}                 // Valeur liée à l'état email
-          onChangeText={setEmail}       // Met à jour l'état email à chaque saisie
-          keyboardType="email-address" // Clavier optimisé pour saisie email
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
+        {/* Image d’en-tête locale (à placer dans /assets/images/login-banner.png) */}
+        <Image
+          source={require('../assets/login-banner.png')}
+          style={styles.headerImage}
         />
+
+        {/* Onglets Login / Register */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity style={styles.activeTab}>
+            <Text style={styles.tabTextActive}>Login</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Register')} style={styles.inactiveTab}>
+            <Text style={styles.tabTextInactive}>Register</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Champ email */}
+        <View style={styles.inputContainer}>
+          <Ionicons name="mail-outline" size={20} color="#555" />
+          <TextInput
+            placeholder="Email"
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
+
+        {/* Champ mot de passe */}
+        <View style={styles.inputContainer}>
+          <Ionicons name="lock-closed-outline" size={20} color="#555" />
+          <TextInput
+            placeholder="Password"
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+        </View>
+
+        {/* Lien mot de passe oublié */}
+        <Text style={styles.forgotText}>Forgot password?</Text>
+
+        {/* Bouton Login */}
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginText}>Log in <Ionicons name="arrow-forward" size={16} color="white" /></Text>
+        </TouchableOpacity>
+
+        {/* Texte de séparation */}
+        <Text style={styles.orText}>Or log in with</Text>
+
+        {/* Icônes des réseaux sociaux */}
+        <View style={styles.socialContainer}>
+          <Image
+            source={{ uri: 'https://img.icons8.com/ios-filled/50/000000/mac-os.png' }}
+            style={styles.socialIcon}
+          />
+          <Image
+            source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
+            style={styles.socialIcon}
+          />
+          <Image
+            source={{ uri: 'https://img.icons8.com/fluency/48/000000/facebook-new.png' }}
+            style={styles.socialIcon}
+          />
+        </View>
       </View>
-
-      {/* Champ de saisie pour le mot de passe avec icône */}
-      <View style={styles.inputContainer}>
-        <Ionicons name="lock-closed-outline" size={20} color="#555" />
-        <TextInput
-          placeholder="Password"
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry               // Cache les caractères saisis (mot de passe)
-        />
-      </View>
-
-      {/* Bouton cliquable pour lancer la connexion */}
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>
-          Login {/* Texte du bouton */}
-          <Ionicons name="arrow-forward" size={16} color="white" /> {/* Icône flèche */}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Lien vers l'écran d'inscription */}
-      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.link}>Don't have an account? Register</Text>
-      </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
-// Styles CSS en JS pour les composants
+// Styles de l’écran
 const styles = StyleSheet.create({
-  container: {
-    paddingTop: 100,       // Espace en haut
-    paddingHorizontal: 20, // Marges horizontales
-    backgroundColor: '#fff', // Fond blanc
-    flex: 1,               // Prend toute la hauteur disponible
+  scrollContainer: {
+    flexGrow: 1,
+    backgroundColor: '#e6ebf9',
   },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#003b57',      // Couleur bleu foncé
-    marginBottom: 30,      // Marge en dessous
-    alignSelf: 'center',   // Centre horizontalement
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: -30,
+  },
+  headerImage: {
+    width: width,
+    height: 280,
+    resizeMode: 'cover',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginTop: -40,
+    backgroundColor: '#fff',
+    borderRadius: 30,
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  activeTab: {
+    paddingVertical: 10,
+    paddingHorizontal: 35,
+    backgroundColor: 'rgb(54, 172, 226)',
+    borderTopLeftRadius: 30,
+    borderBottomLeftRadius: 30,
+  },
+  inactiveTab: {
+    paddingVertical: 10,
+    paddingHorizontal: 35,
+    backgroundColor: ' #f0f0f0',
+    borderTopRightRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  tabTextActive: {
+    color: ' #fff',
+    fontWeight: '600',
+  },
+  tabTextInactive: {
+    color: '#003b57',
+    fontWeight: '600',
   },
   inputContainer: {
-    flexDirection: 'row',  // Aligne icône et input sur la même ligne
+    flexDirection: 'row',
     backgroundColor: '#f1f1f1',
-    alignItems: 'center',  // Centre verticalement
+    alignItems: 'center',
     borderRadius: 10,
     marginBottom: 15,
     paddingHorizontal: 12,
+    width: '100%',
   },
   input: {
-    flex: 1,               // Prend tout l'espace restant
+    flex: 1,
     padding: 10,
   },
-  button: {
-    backgroundColor: '#007AFF', // Bleu vif
-    borderRadius: 8,
-    paddingVertical: 12,
-    marginTop: 10,
-    alignItems: 'center',   // Centre le texte du bouton
-  },
-  buttonText: {
-    color: '#fff',          // Texte blanc
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  link: {
-    marginTop: 15,
+  forgotText: {
+    alignSelf: 'flex-end',
     color: '#007AFF',
-    textAlign: 'center',
+    marginBottom: 10,
+  },
+  loginButton: {
+    backgroundColor: 'rgb(37, 164, 238)',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 20,
+  },
+  loginText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  orText: {
+    color: '#888',
+    marginBottom: 10,
+  },
+  socialContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  socialIcon: {
+    width: 40,
+    height: 40,
+    marginHorizontal: 10,
   },
 });
