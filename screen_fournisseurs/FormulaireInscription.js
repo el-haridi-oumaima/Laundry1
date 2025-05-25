@@ -204,6 +204,10 @@ if (response.ok && responseData.success) {
     navigation.goBack();
   };
 
+  const goToLogin = () => {
+    navigation.navigate('FournisseurLoginScreen');
+  };
+
   const selectWorkHours = (option) => {
     setWorkHours(option);
     setShowWorkHoursModal(false);
@@ -446,6 +450,14 @@ if (response.ok && responseData.success) {
 
         <Text style={styles.requiredNote}>* Required fields</Text>
 
+        {/* Already have an account section */}
+        <View style={styles.loginSection}>
+          <Text style={styles.loginPrompt}>Already have an account?</Text>
+          <TouchableOpacity onPress={goToLogin} style={styles.loginLink}>
+            <Text style={styles.loginLinkText}>Login</Text>
+          </TouchableOpacity>
+        </View>
+
       </ScrollView>
 
       {renderDropdownModal(showWorkHoursModal, () => setShowWorkHoursModal(false), workHoursOptions, selectWorkHours, 'Select Work Hours')}
@@ -549,6 +561,29 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  loginSection: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  loginPrompt: {
+    fontSize: 14,
+    color: '#666',
+    marginRight: 5,
+  },
+  loginLink: {
+    paddingHorizontal: 5,
+  },
+  loginLinkText: {
+    fontSize: 14,
+    color: '#1e4ed4',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
   modalOverlay: {
     flex: 1,
