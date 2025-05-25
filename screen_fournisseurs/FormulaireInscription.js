@@ -142,7 +142,7 @@ export default function FormulaireInscription() {
     // Option 2: Bearer Token (if you're using JWT or API key)
     // const bearerToken = 'Bearer your_api_token_here';
 
-    const response = await fetch('http://192.168.1.107:8080/api/laundry/send', {
+    const response = await fetch('http://100.72.105.219:8080/api/laundry/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

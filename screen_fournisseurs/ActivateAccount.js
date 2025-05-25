@@ -62,7 +62,7 @@ export default function ActivateAccount() {
       const password = 'your_password';
       const basicAuth = 'Basic ' + btoa(username + ':' + password);
 
-      const response = await fetch('http://192.168.1.107:8080/api/laundry/activate', {
+      const response = await fetch('http://100.72.105.219:8080/api/laundry/activate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

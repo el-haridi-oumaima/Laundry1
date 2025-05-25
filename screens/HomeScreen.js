@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 
 const DATA = [
   {
-    id: '1',
+    id: '10',
     name: 'Pressing IK SEC Souissi',
     location: 'Av. Malak 10000',
     time: '8:00am - 6:30pm',
@@ -53,29 +53,61 @@ const DATA = [
 export default function HomeScreen() {
   const navigation = useNavigation();
 
+  const [laundries, setLaundries] = useState(DATA);
+  const [searchText, setSearchText] = useState('');
+
+  const API_URL = 'http://100.72.105.219:8080/api/laundries/activated'; // Remplace par ton URL backend
+
+  useEffect(() => {
+    fetch(API_URL)
+      .then(res => res.json())
+      .then(json => {
+        const filtered = json
+          .filter(item => item.isActivated) // Correction ici
+          .map(item => ({
+            id: String(item.id),
+            name: item.name,
+            location: item.address,         // Correction ici
+            time: item.workHours,           // Correction ici
+            day: '',                       // Pas dans le JSON, donc vide
+            rating: item.rating || 0,
+            image: item.shopImage
+              ? { uri: item.shopImage }
+              : require('../assets/laundryowner.jpg'), // Image par défaut
+          }));
+
+        setLaundries([...DATA, ...filtered]);
+      })
+      .catch(error => {
+        console.error('Erreur fetch laundries:', error);
+      });
+  }, []);
+
   const handlePress = () => {
     navigation.navigate('Order');
   };
 
-  const renderItem = ({ item }) => {
-    return (
-      <View style={styles.card}>
-        <Image source={item.image} style={styles.image} />
-        <View style={styles.cardContent}>
-          <Text style={styles.title}>{item.name}</Text>
-          <Text style={styles.details}>{item.time} • {item.day}</Text>
-          <Text style={styles.details}>{item.location}</Text>
-          <Text style={styles.rating}>⭐ {item.rating}</Text>
+  const filteredList = laundries.filter(item =>
+    item.name.toLowerCase().includes(searchText.toLowerCase())
+  );
 
-          <TouchableOpacity style={styles.button} onPress={handlePress}>
-            <Text style={styles.buttonText}>
-              Book Now <Ionicons name="arrow-forward" size={14} color="white" />
-            </Text>
-          </TouchableOpacity>
-        </View>
+  const renderItem = ({ item }) => (
+    <View style={styles.card}>
+      <Image source={item.image} style={styles.image} />
+      <View style={styles.cardContent}>
+        <Text style={styles.title}>{item.name}</Text>
+        <Text style={styles.details}>{item.time} {item.day ? `• ${item.day}` : ''}</Text>
+        <Text style={styles.details}>{item.location}</Text>
+        <Text style={styles.rating}>⭐ {item.rating.toFixed(1)}</Text>
+
+        <TouchableOpacity style={styles.button} onPress={handlePress}>
+          <Text style={styles.buttonText}>
+            Book Now <Ionicons name="arrow-forward" size={14} color="white" />
+          </Text>
+        </TouchableOpacity>
       </View>
-    );
-  };
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -83,18 +115,23 @@ export default function HomeScreen() {
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={20} color="#aaa" />
-          <TextInput placeholder="Search" style={styles.input} />
+          <TextInput
+            placeholder="Search"
+            style={styles.input}
+            value={searchText}
+            onChangeText={setSearchText}
+          />
         </View>
         <TouchableOpacity style={styles.filterButton}>
           <MaterialIcons name="filter-list" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
-      {/* Cards List */}
+      {/* Liste des laundries */}
       <FlatList
-        data={DATA}
+        data={filteredList}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
       />
 
@@ -217,7 +254,6 @@ const styles = StyleSheet.create({
     borderTopColor: '#ddd',
     backgroundColor: '#fff',
   },
-
   exploreButton: {
     backgroundColor: '#007AFF',
     padding: 12,
