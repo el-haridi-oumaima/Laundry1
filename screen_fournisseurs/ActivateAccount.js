@@ -62,7 +62,7 @@ export default function ActivateAccount() {
       const password = 'your_password';
       const basicAuth = 'Basic ' + btoa(username + ':' + password);
 
-      const response = await fetch('http://192.168.1.106:8080/api/laundry/activate', {
+      const response = await fetch('http://192.168.1.107:8080/api/laundry/activate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ export default function ActivateAccount() {
           [
             {
               text: 'Login Now',
-              onPress: () => navigation.navigate('LoginScreen', { email }) // Pass email to login screen
+              onPress: () => navigation.navigate('FournisseurLoginScreen', { email }) // Pass email to login screen
             }
           ]
         );
@@ -119,7 +119,7 @@ export default function ActivateAccount() {
   };
 
   const goToLogin = () => {
-    navigation.navigate('LoginScreen', { email });
+    navigation.navigate('FournisseurLoginScreen', { email });
   };
 
   return (

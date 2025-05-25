@@ -142,7 +142,7 @@ export default function FormulaireInscription() {
     // Option 2: Bearer Token (if you're using JWT or API key)
     // const bearerToken = 'Bearer your_api_token_here';
 
-    const response = await fetch('http://192.168.1.106:8080/api/laundry/send', {
+    const response = await fetch('http://192.168.1.107:8080/api/laundry/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -175,20 +175,23 @@ export default function FormulaireInscription() {
       responseData = { success: response.ok, message: textResponse || 'Unknown error occurred' };
     }
 
-    if (response.ok && responseData.success) {
-      Alert.alert(
-        'Registration Successful!', 
-        'Your registration has been submitted successfully! A password has been sent to your email address. Please check your email to get your login credentials.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('ActivateAccount') // Adjust to your actual route name
-          }
-        ]
-      );
-    } else {
-      Alert.alert('Registration Failed', responseData.message || 'Something went wrong. Please try again.');
-    }
+    // In your FormulaireInscription.js, update the success alert:
+if (response.ok && responseData.success) {
+  Alert.alert(
+    'Registration Successful!', 
+    'Your registration has been submitted successfully! A temporary password has been sent to your email address. Please check your email and use it to activate your account.',
+    [
+      {
+        text: 'OK',
+        onPress: () => navigation.navigate('ActivateAccount', { 
+          email: email.trim().toLowerCase() // Make sure to pass the email
+        })
+      }
+    ]
+  );
+} else {
+  Alert.alert('Registration Failed', responseData.message || 'Something went wrong. Please try again.');
+}
   } catch (error) {
     console.error('Submission error:', error);
     Alert.alert('Error', 'Network error occurred. Please check your connection and try again.');
