@@ -143,7 +143,7 @@ export default function FormulaireInscription() {
       const username = 'your_username'; // Replace with actual username
       const password = 'your_password'; // Replace with actual password
       const basicAuth = 'Basic ' + btoa(username + ':' + password);
-
+      
       const response = await fetch('http://192.168.1.107:8080/api/laundry/send', {
         method: 'POST',
         headers: {

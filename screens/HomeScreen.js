@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 
 const DATA = [
   {
-    id: '10',
+    id: '11',
     name: 'Pressing IK SEC Souissi',
     location: 'Av. Malak 10000',
     time: '8:00am - 6:30pm',
@@ -22,7 +22,7 @@ const DATA = [
     image: require('../assets/ksec.png'),
   },
   {
-    id: '2',
+    id: '21',
     name: 'So Clean Pressing',
     location: 'Rue 118',
     time: '8:30am - 7:00pm',
@@ -31,7 +31,7 @@ const DATA = [
     image: require('../assets/soclean .png'),
   },
   {
-    id: '3',
+    id: '32',
     name: 'La Perle Blanche Pressing',
     location: 'Rue de Fès',
     time: '9:00am - 5:00pm',
@@ -40,7 +40,7 @@ const DATA = [
     image: require('../assets/pressing.png'),
   },
   {
-    id: '4',
+    id: '45',
     name: 'The Laundry Room RABAT',
     location: 'Rue Témara',
     time: '8:00am - 6:00pm',
