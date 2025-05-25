@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 
 const DATA = [
   {
-    id: '11',
+    id: 'local-11',
     name: 'Pressing IK SEC Souissi',
     location: 'Av. Malak 10000',
     time: '8:00am - 6:30pm',
@@ -22,7 +22,7 @@ const DATA = [
     image: require('../assets/ksec.png'),
   },
   {
-    id: '21',
+    id: 'local-22',
     name: 'So Clean Pressing',
     location: 'Rue 118',
     time: '8:30am - 7:00pm',
@@ -31,7 +31,7 @@ const DATA = [
     image: require('../assets/soclean .png'),
   },
   {
-    id: '32',
+    id: 'local-33',
     name: 'La Perle Blanche Pressing',
     location: 'Rue de Fès',
     time: '9:00am - 5:00pm',
@@ -40,7 +40,7 @@ const DATA = [
     image: require('../assets/pressing.png'),
   },
   {
-    id: '45',
+    id: 'local-43',
     name: 'The Laundry Room RABAT',
     location: 'Rue Témara',
     time: '8:00am - 6:00pm',
@@ -65,7 +65,7 @@ export default function HomeScreen() {
         const filtered = json
           .filter(item => item.isActivated) // Correction ici
           .map(item => ({
-            id: String(item.id),
+            id: `remote-${item.id}`,
             name: item.name,
             location: item.address,         // Correction ici
             time: item.workHours,           // Correction ici
