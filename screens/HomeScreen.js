@@ -61,7 +61,7 @@ export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
 
   // URL de l'API backend pour récupérer les pressing activés
-  const API_URL = 'http://100.72.105.219:8080/api/laundries/activated';
+  const API_URL = 'http://100.72.107.23:8080/api/laundries/activated';
 
   // useEffect appelé une fois au montage du composant pour récupérer les données distantes
   useEffect(() => {
@@ -73,7 +73,8 @@ export default function HomeScreen() {
         const filtered = json
           .filter(item => item.isActivated)
           .map(item => ({
-            id: `remote-${item.id}`, // id unique (préfixé "remote-")
+            id: item.id, // id unique (préfixé "remote-")
+            
             name: item.name,
             location: item.address, // adresse dans le backend
             time: item.workHours,   // horaires dans le backend
@@ -104,6 +105,7 @@ export default function HomeScreen() {
   navigation.navigate('Order', {
     storeName: store.name,
     services: store.services || [],
+    laundryId: store.id,        // <— on passe l’ID du pressing
   });
 };
 

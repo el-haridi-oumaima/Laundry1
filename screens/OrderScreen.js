@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,116 +11,110 @@ import {
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Tous les services disponibles avec icônes, étiquettes et noms officiels
 const allServiceOptions = [
-  {
-    key: 'washing',
-    label: 'Washing & Drying - 20 MAD',
-    icon: <MaterialCommunityIcons name="washing-machine" size={22} color="#50b8e7" />,
-    officialName: 'Washing & Drying',
-  },
-  {
-    key: 'dryCleaning',
-    label: 'Dry Cleaning - 25 MAD',
-    icon: <MaterialCommunityIcons name="tshirt-crew" size={22} color="#50b8e7" />,
-    officialName: 'Dry Cleaning',
-  },
-  {
-    key: 'washingOnly',
-    label: 'Washing Only - 15 MAD',
-    icon: <MaterialCommunityIcons name="washing-machine" size={22} color="#50b8e7" />,
-    officialName: 'Washing Only',
-  },
-  {
-    key: 'ironing',
-    label: 'Ironing - 15 MAD',
-    icon: <MaterialCommunityIcons name="iron" size={22} color="#50b8e7" />,
-    officialName: 'Ironing',
-  },
-  {
-    key: 'express',
-    label: 'Express Service - 30 MAD',
-    icon: <Ionicons name="flash-outline" size={22} color="#50b8e7" />,
-    officialName: 'Express Service',
-  },
-  {
-    key: 'full',
-    label: 'All Services - 40 MAD',
-    icon: <Ionicons name="sparkles-outline" size={22} color="#50b8e7" />,
-    officialName: 'All Services',
-  },
-  {
-    key: 'delivery',
-    label: 'Pickup & Delivery - 10 MAD',
-    icon: <Ionicons name="bicycle-outline" size={22} color="#50b8e7" />,
-    officialName: 'Pickup & Delivery',
-  },
+  { key: 'washing',    label: 'Washing & Drying - 20 MAD', icon: <MaterialCommunityIcons name="washing-machine" size={22} color="#50b8e7" />, officialName: 'Washing & Drying' },
+  { key: 'dryCleaning',label: 'Dry Cleaning - 25 MAD',     icon: <MaterialCommunityIcons name="tshirt-crew" size={22} color="#50b8e7" />,     officialName: 'Dry Cleaning' },
+  { key: 'washingOnly',label: 'Washing Only - 15 MAD',      icon: <MaterialCommunityIcons name="washing-machine" size={22} color="#50b8e7" />, officialName: 'Washing Only' },
+  { key: 'ironing',    label: 'Ironing - 15 MAD',           icon: <MaterialCommunityIcons name="iron" size={22} color="#50b8e7" />,    officialName: 'Ironing' },
+  { key: 'express',    label: 'Express Service - 30 MAD',   icon: <Ionicons name="flash-outline" size={22} color="#50b8e7" />,          officialName: 'Express Service' },
+  { key: 'full',       label: 'All Services - 40 MAD',      icon: <Ionicons name="sparkles-outline" size={22} color="#50b8e7" />,       officialName: 'All Services' },
 ];
 
-// Fonction utilitaire pour formater une date
+// Formatte une date pour affichage
 const formatDate = (date) => {
   if (!date) return '';
   const d = new Date(date);
-  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString() + ' ' +
+         d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 export default function OrderScreen() {
   const route = useRoute();
-  const { storeName, providerName, services = [] } = route.params || {};
+  const {
+    storeName,
+    services = [],    // la liste des noms officiels passés depuis HomeScreen
+    laundryId,        // l’ID du pressing
+  } = route.params || {};
 
-  // Ne garder que les services disponibles pour ce pressing
-  const filteredServices = allServiceOptions.filter(svc =>
+  // On ne garde que les services proposés par ce pressing
+  const availableServices = allServiceOptions.filter(svc =>
     services.includes(svc.officialName)
   );
 
-  // État local des services sélectionnés
-  const [selectedServices, setSelectedServices] = useState({});
-
-  // Adresse de ramassage
+  // États locaux
+  const [selected, setSelected] = useState({});    // { washing: true, ironing: false, ... }
   const [address, setAddress] = useState('');
-
-  // États pour les dates et les pickers
   const [pickupDate, setPickupDate] = useState(null);
   const [deliveryDate, setDeliveryDate] = useState(null);
-  const [isPickupPickerVisible, setPickupPickerVisible] = useState(false);
-  const [isDeliveryPickerVisible, setDeliveryPickerVisible] = useState(false);
-
-  // Indicateur de chargement
+  const [showPickup, setShowPickup] = useState(false);
+  const [showDelivery, setShowDelivery] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Sélection / désélection d'un service
-  const toggleService = (key) => {
-    setSelectedServices(prev => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  // Nouveau : état clientId
+  const [clientId, setClientId] = useState(null);
+
+  // Récupérer le clientId depuis AsyncStorage au montage
+  useEffect(() => {
+    AsyncStorage.getItem('clientId')
+      .then(id => {
+        if (id) setClientId(Number(id));
+      })
+      .catch(console.error);
+  }, []);
+
+  // Toggle sélection d'un service
+  const toggleService = key => {
+    setSelected(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Fonction de soumission de la commande
-  const submitOrder = () => {
-    const chosen = Object.keys(selectedServices).filter(k => selectedServices[k]);
-
-    if (!address) {
-      alert('Please enter pickup address');
-      return;
-    }
-    if (!pickupDate || !deliveryDate) {
-      alert('Please select pickup and delivery dates');
-      return;
-    }
-    if (chosen.length === 0) {
-      alert('Please select at least one service');
+  // Soumission de la commande
+  const submitOrder = async () => {
+    if (clientId === null) {
+      alert('Chargement des données utilisateur…');
       return;
     }
 
-    setLoading(true);
+    const chosenKeys = Object.keys(selected).filter(k => selected[k]);
+    if (!address || !pickupDate || !deliveryDate || chosenKeys.length === 0) {
+      alert('Merci de remplir tous les champs');
+      return;
+    }
 
-    // Simulation d'une confirmation
-    setTimeout(() => {
+    // Construit la liste des noms officiels à envoyer
+    const chosenServices = chosenKeys.map(key => {
+      const svc = allServiceOptions.find(s => s.key === key);
+      return svc.officialName;
+    });
+
+    const payload = {
+      clientId,                        // ID du client connecté
+      laundryId,                       // ID du pressing
+      address,
+      pickupDate: pickupDate.toISOString().slice(0,19),
+      deliveryDate: deliveryDate.toISOString().slice(0,19),
+      services: chosenServices,        // ex. ["Washing & Drying","Ironing"]
+      // status, createdAt, updatedAt gérés côté backend
+    };
+
+    try {
+      setLoading(true);
+      const res = await fetch('http://100.72.107.23:8080/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      const data = await res.json();
+      alert(`Commande créée (ID ${data.orderId}) !`);
+    } catch (e) {
+      console.error(e);
+      alert('Erreur réseau ou serveur, réessaye plus tard.');
+    } finally {
       setLoading(false);
-      alert(`Order confirmed for ${storeName}.\nServices: ${chosen.join(', ')}\nPickup: ${formatDate(pickupDate)}\nDelivery: ${formatDate(deliveryDate)}`);
-    }, 1500);
+    }
   };
 
   return (
@@ -128,14 +122,13 @@ export default function OrderScreen() {
       <Text style={styles.header}>{storeName}</Text>
       <Text style={styles.title}>Choose Your Services</Text>
 
-      {/* Affichage des services disponibles */}
       <View style={styles.servicesContainer}>
-        {filteredServices.map((item) => (
+        {availableServices.map(item => (
           <TouchableOpacity
             key={item.key}
             style={[
               styles.serviceCard,
-              selectedServices[item.key] && styles.serviceCardSelected,
+              selected[item.key] && styles.serviceCardSelected
             ]}
             onPress={() => toggleService(item.key)}
             activeOpacity={0.7}
@@ -147,12 +140,10 @@ export default function OrderScreen() {
       </View>
 
       <Text style={styles.subtitle}>Schedule</Text>
-
-      {/* Adresse */}
       <Text style={styles.label}>Pickup Address:</Text>
       <View style={styles.inputRow}>
         <TextInput
-          placeholder="Enter your pickup address"
+          placeholder="Enter pickup address"
           style={styles.input}
           value={address}
           onChangeText={setAddress}
@@ -160,61 +151,40 @@ export default function OrderScreen() {
         <Ionicons name="home-outline" size={20} color="#50b8e7" />
       </View>
 
-      {/* Date de ramassage */}
       <Text style={styles.label}>Pickup Time:</Text>
-      <TouchableOpacity
-        style={styles.inputRow}
-        onPress={() => setPickupPickerVisible(true)}
-      >
-        <Text style={styles.input}>
-          {formatDate(pickupDate) || 'dd/mm/yyyy --:--'}
-        </Text>
+      <TouchableOpacity style={styles.inputRow} onPress={() => setShowPickup(true)}>
+        <Text style={styles.input}>{formatDate(pickupDate) || 'dd/mm/yyyy --:--'}</Text>
         <Ionicons name="calendar-outline" size={20} color="#50b8e7" />
       </TouchableOpacity>
 
-      {/* Date de livraison */}
       <Text style={styles.label}>Delivery Time:</Text>
-      <TouchableOpacity
-        style={styles.inputRow}
-        onPress={() => setDeliveryPickerVisible(true)}
-      >
-        <Text style={styles.input}>
-          {formatDate(deliveryDate) || 'dd/mm/yyyy --:--'}
-        </Text>
+      <TouchableOpacity style={styles.inputRow} onPress={() => setShowDelivery(true)}>
+        <Text style={styles.input}>{formatDate(deliveryDate) || 'dd/mm/yyyy --:--'}</Text>
         <Ionicons name="calendar-outline" size={20} color="#50b8e7" />
       </TouchableOpacity>
 
-      {/* Bouton de validation */}
       <TouchableOpacity
         style={[styles.button, loading && { opacity: 0.7 }]}
         onPress={submitOrder}
         disabled={loading}
       >
-        {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Confirm & Proceed to Payment</Text>
-        )}
+        {loading
+          ? <ActivityIndicator color="#fff" />
+          : <Text style={styles.buttonText}>Confirm & Proceed</Text>
+        }
       </TouchableOpacity>
 
-      {/* Modaux de sélection de date */}
       <DateTimePickerModal
-        isVisible={isPickupPickerVisible}
+        isVisible={showPickup}
         mode="datetime"
-        onConfirm={(date) => {
-          setPickupDate(date);
-          setPickupPickerVisible(false);
-        }}
-        onCancel={() => setPickupPickerVisible(false)}
+        onConfirm={date => { setPickupDate(date); setShowPickup(false); }}
+        onCancel={() => setShowPickup(false)}
       />
       <DateTimePickerModal
-        isVisible={isDeliveryPickerVisible}
+        isVisible={showDelivery}
         mode="datetime"
-        onConfirm={(date) => {
-          setDeliveryDate(date);
-          setDeliveryPickerVisible(false);
-        }}
-        onCancel={() => setDeliveryPickerVisible(false)}
+        onConfirm={date => { setDeliveryDate(date); setShowDelivery(false); }}
+        onCancel={() => setShowDelivery(false)}
       />
     </ScrollView>
   );
@@ -233,12 +203,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
     marginBottom: 4,
-    textAlign: 'center',
-  },
-  subHeader: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 12,
     textAlign: 'center',
   },
   title: {
