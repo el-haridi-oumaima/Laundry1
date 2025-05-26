@@ -101,7 +101,7 @@ export default function OrderScreen() {
 
     try {
       setLoading(true);
-      const res = await fetch('http://100.72.107.23:8080/api/orders', {
+      const res = await fetch('http://192.168.43.107:8080/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

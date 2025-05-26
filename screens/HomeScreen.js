@@ -61,7 +61,7 @@ export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
 
   // URL de l'API backend pour récupérer les pressing activés
-  const API_URL = 'http://100.72.107.23:8080/api/laundries/activated';
+  const API_URL = 'http://192.168.43.107:8080/api/laundries/activated';
 
   // useEffect appelé une fois au montage du composant pour récupérer les données distantes
   useEffect(() => {

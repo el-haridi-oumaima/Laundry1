@@ -56,7 +56,7 @@ const HomeScreen = ({ route }) => {
       const clientId = route?.params?.clientId || 1; // Fallback for testing
       
       // Spring Boot API endpoints
-      const baseUrl = 'http://192.168.1.107:8080'; // Replace with your Spring Boot server URL
+      const baseUrl = 'http://192.168.43.107:8080'; // Replace with your Spring Boot server URL
       // For production: 'https://your-domain.com'
       
       const [pendingResponse, activeResponse] = await Promise.all([

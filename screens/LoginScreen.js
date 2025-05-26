@@ -32,7 +32,7 @@ export default function LoginScreen() {
 
     try {
       // Appel à l’API de login
-      const response = await fetch('http://100.72.107.23:8080/api/auth/login', {
+      const response = await fetch('http://192.168.43.107:8080/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
